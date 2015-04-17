@@ -28,7 +28,7 @@ use utf8;
 use Getopt::Long;  
 
 my $opts = {
-        'database'              => './feed.db',
+        'database'              => './feeds.db',
         'timeout'               => 72,  # hours
 };                                             
 my @auto_tags = ();                            
@@ -261,8 +261,7 @@ sub hashtagify {
 
                 # drop stop words
                 next if length( $item ) < 3;
-                next if $item =~ m/^(and|are|but|for|from|how|its|the|this)$/;
-
+                next if lc( $item ) =~ m/^(and|are|but|for|from|how|its|the|this)$/;
                 # hashtagify it
                 $item = '#' . $item;
                 # use a hash here instead of an ordered list for auto-dedupe
