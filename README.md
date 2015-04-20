@@ -8,7 +8,7 @@ This is a lightweight, customizable "bot" script to harvest RSS feeds and re-pub
 
 In order to use this script, you must first create a sqlite database, which can be accomplished thusly:
 
-`$ echo "CREATE TABLE feeds(guid varchar(255) primary key,feed_id varchar(127),link varchar(255),hashtags varchar(255),timestamp integer(10),posted integer(1));" | sqlite3 feeds.db`
+`$ echo "CREATE TABLE feeds(guid varchar(255) primary key,feed_id varchar(127),title varchar(255),link varchar(255),hashtags varchar(255),timestamp integer(10),posted integer(1));" | sqlite3 feeds.db`
  
  You must also have the following perl modules installed:
  
