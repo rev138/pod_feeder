@@ -12,7 +12,7 @@
 ## for helping me understand how play nice with CSRF tokens et al                                  
 ##                                                                                                 
 ## You can initialize the database thusly:                                                         
-## $ echo "CREATE TABLE feeds( guid varchar(255) primary key, feed_id varchar(127), link varchar(255), hashtags varchar(255), timestamp integer(10), posted integer(1) );" | sqlite3 feeds.db
+## $ echo "CREATE TABLE feeds( guid varchar(255) primary key, feed_id varchar(127), title varchar(255), link varchar(255), hashtags varchar(255), timestamp integer(10), posted integer(1) );" | sqlite3 feeds.db
 ##                                                                                                                                                                                           
 
 use strict;
@@ -136,8 +136,8 @@ sub update_feed {
                 # and if not, insert it
                 unless( defined $row ){
                         $sth = $dbh->prepare( 
-                                "INSERT INTO feeds( guid, feed_id, link, hashtags, posted, timestamp ) \
-                                VALUES( \"$item->{'guid'}\", \"$feed_id\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
+                                "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) \
+                                VALUES( \"$item->{'guid'}\", \"$feed_id\", \"$item->{'title'}\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
                         ) or die "Can't prepare statement: $DBI::errstr";                                                                                        
                         $sth->execute() or die "Can't execute statement: $DBI::errstr";                                                                          
                 }                                                                                                                                                
