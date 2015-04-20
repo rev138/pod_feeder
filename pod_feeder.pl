@@ -1,5 +1,5 @@
 #!/usr/bin/perl                          
-s
+
 ##
 ## pod_feeder.pl
 ##              
