@@ -363,7 +363,7 @@ sub format_content {
         my ( $content ) = @_;
 
         $content =~ s/\n/\n\n/g;
-        $content .= "\n\nposted by [pod_feeder](https://github.com/rev138/pod_feeder)";
+        $content .= "\n\nposted by [#pod_feeder](https://github.com/rev138/pod_feeder)";
 
         return $content;
 }
