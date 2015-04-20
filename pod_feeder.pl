@@ -99,7 +99,7 @@ sub publish_feed {
         }                                           
 
         foreach my $update ( @updates ){
-                my $content = "$update->{'link'}\n$update->{'hashtags'}";
+                my $content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n$update->{'hashtags'}";
 
                 print "Publishing $feed_id\t$update->{'guid'}\n";
 
