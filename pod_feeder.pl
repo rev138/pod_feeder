@@ -89,7 +89,7 @@ sub publish_feed {
 
         my $dbh = connect_to_db( $db_file );
         my $sth = $dbh->prepare(            
-                "SELECT guid, link, hashtags FROM feeds WHERE feed_id == \"$feed_id\" AND posted == 0 AND timestamp > " . ( time - ( $timeout * 3600 ))
+                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == \"$feed_id\" AND posted == 0 AND timestamp > " . ( time - ( $timeout * 3600 ))
         ) or die "Can't prepare statement: $DBI::errstr";                                                                                              
 
         $sth->execute() or die "Can't execute statement: $DBI::errstr";
