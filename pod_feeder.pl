@@ -160,6 +160,7 @@ sub get_feed_items {
 
         foreach my $item ( @{$feed->{'channel'}->{'item'}} ){
                 my $link = $item->{'link'};
+                my $title = 
                 my @hashtags = ();                           
                 my $guid = '';                               
 
@@ -222,6 +223,7 @@ sub get_feed_items {
 
                 my $obj = {
                         guid            => $guid,
+                        title		=> $item->{'title'},
                         link            => $link,
                         hashtags        => hashtagify( \@hashtags ),
                 };                                                  
