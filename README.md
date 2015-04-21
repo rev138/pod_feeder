@@ -1,7 +1,7 @@
 # pod_feeder
-Publishes RSS feeds to Diaspora*
+Publishes RSS/Atom feeds to Diaspora*
 
-This is a lightweight, customizable "bot" script to harvest RSS feeds and re-publish them to the Diaspora social network. It is posted here without warranty, for public use.
+This is a lightweight, customizable "bot" script to harvest RSS/Atom feeds and re-publish them to the Diaspora social network. It is posted here without warranty, for public use.
 
 
 ## Installation
