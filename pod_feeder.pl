@@ -218,7 +218,7 @@ sub get_feed_items {
                 # try to guess tags from the title
                 if( $extract_tags_from_title ){   
                         # split up string
-                        my @parts = split( /[^A-Za-z0-9]/, $item->{'title'} );
+                        my @parts = split( /\s+/, $item->{'title'} );
 
                         push( @hashtags, @parts );
                 } 
