@@ -157,8 +157,38 @@ sub connect_to_db {
 sub get_feed_items {                      
         my ( $feed, $auto_tags, $extract_tags_from_url, $tag_categories, $extract_tags_from_title ) = @_;
         my @items = ();                                                        
+	my @list = ();
+	
+	# handle different types of RSS formatting, starting with them most standard
+	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
+		@list = @{$feed->{'channel'}->{'item'}};
+	}
+	# then move on to doing it the hard way
+	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
+		my $entries = $feed->{'entry'};
+		
+		foreach my $guid ( keys %$entries ){
+			my $item = {
+				guid	=> $guid,
+				title	=> $entries->{$guid}->{'title'},
+			};
 
-        foreach my $item ( @{$feed->{'channel'}->{'item'}} ){
+			if( defined $entries->{$guid}->{'link'} ){
+				if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
+					$item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
+				}
+				elsif( ref $entries->{$guid}->{'link'} eq 'SCALAR' ){
+					$item->{'link'} = $entries->{$guid}->{'link'};
+				}
+			}
+						
+			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
+				
+			push( @list,  $item ) if defined $item->{'link'};
+		}
+	}
+
+        foreach my $item ( @list ){
                 my $link = $item->{'link'};
                 my $title = 
                 my @hashtags = ();                           
