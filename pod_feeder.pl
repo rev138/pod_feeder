@@ -159,32 +159,40 @@ sub get_feed_items {
         my @items = ();                                                        
 	my @list = ();
 	
-	# handle different types of RSS formatting, starting with them most standard
+	# RSS
 	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
 		@list = @{$feed->{'channel'}->{'item'}};
 	}
-	# then move on to doing it the hard way
+	# Atom
 	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
 		my $entries = $feed->{'entry'};
 		
 		foreach my $guid ( keys %$entries ){
 			my $item = {
 				guid	=> $guid,
-				title	=> $entries->{$guid}->{'title'},
 			};
+
+			if( defined $entries->{$guid}->{'title'} ){
+				if( ref $entries->{$guid}->{'title'} eq 'HASH' and defined $entries->{$guid}->{'title'}->{'content'} ){
+					$item->{'title'} = $entries->{$guid}->{'title'}->{'content'};
+				}
+				elsif( ref $entries->{$guid}->{'title'} eq '' ){
+					$item->{'title'} = $entries->{$guid}->{'title'};
+				}
+			}
 
 			if( defined $entries->{$guid}->{'link'} ){
 				if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
 					$item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
 				}
-				elsif( ref $entries->{$guid}->{'link'} eq 'SCALAR' ){
+				elsif( ref $entries->{$guid}->{'link'} eq '' ){
 					$item->{'link'} = $entries->{$guid}->{'link'};
 				}
 			}
 						
 			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
 				
-			push( @list,  $item ) if defined $item->{'link'};
+			push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
 		}
 	}
 
