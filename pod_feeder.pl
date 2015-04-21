@@ -68,13 +68,29 @@ my ( $fetched, $feed ) = fetch_feed( $opts->{'feed-url'}, $user_agent );
 if( $fetched ){
         eval { 
                 # update the database
-                update_feed( $opts->{'database'}, $feed, $opts->{'feed-id'}, \@auto_tags, $opts->{'url-tags'}, $opts->{'category-tags'}, $opts->{'title-tags'} );
+                update_feed(
+                	$feed,
+                	db_file 		=> $opts->{'database'},
+                	feed_id 		=> $opts->{'feed-id'},
+                	auto_tags		=> \@auto_tags,
+                	extract_tags_from_url	=> $opts->{'url-tags'},
+                	extract_tags_from_title	=> $opts->{'title-tags'},
+                	tag_categories		=> $opts->{'category-tags'},
+                );
         };                                                                                                                                
         warn "$@" if $@;                                                                                                                  
 
         eval {
                 # publish new feed items to the pod, unless the user specified --fetch-only
-                publish_feed( $opts->{'database'}, $opts->{'feed-id'}, $opts->{'timeout'}, $opts->{'pod-url'}, $opts->{'username'}, $opts->{'password'}, \@aspect_ids ) unless $opts->{'fetch-only'}; 
+                publish_feed_items(
+                	db_file		=> $opts->{'database'},
+                	feed_id		=> $opts->{'feed-id'},
+                	timeout		=> $opts->{'timeout'},
+                	pod_url		=> $opts->{'pod-url'},
+                	username	=> $opts->{'username'},
+                	password	=> $opts->{'password'},
+                	aspect_ids	=> \@aspect_ids,
+                ) unless $opts->{'fetch-only'}; 
         };                                                                                                                                                                                            
         warn "$@" if $@;                                                                                                                                                                              
 }                                                                                                                                                                                                     
@@ -83,13 +99,13 @@ else {
 }                                                                                                                                                                                                     
 
 # publishes un-posted items in the database
-sub publish_feed {                         
-        my ( $db_file, $feed_id, $timeout, $pod_url, $username, $password, $aspect_ids ) = @_;
+sub publish_feed_items {                         
+        my ( %params ) = @_;
         my @updates = ();                                                                     
 
-        my $dbh = connect_to_db( $db_file );
+        my $dbh = connect_to_db( $params{'db_file'} );
         my $sth = $dbh->prepare(            
-                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == \"$feed_id\" AND posted == 0 AND timestamp > " . ( time - ( $timeout * 3600 ))
+                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == \"$params{'feed_id'}\" AND posted == 0 AND timestamp > " . ( time - ( $params{'timeout'} * 3600 ))
         ) or die "Can't prepare statement: $DBI::errstr";                                                                                              
 
         $sth->execute() or die "Can't execute statement: $DBI::errstr";
@@ -101,9 +117,9 @@ sub publish_feed {
         foreach my $update ( @updates ){
                 my $content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n$update->{'hashtags'}";
 
-                print "Publishing $feed_id\t$update->{'guid'}\n";
+                print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
 
-                my $post = publish_post( $content, $pod_url, $username, $password, $aspect_ids );
+                my $post = publish_post( $content, %params );
 
                 # mark the item as successfully posted
                 if( $post->is_success ){              
@@ -123,9 +139,14 @@ sub publish_feed {
 
 # adds new feed items to the database
 sub update_feed {                    
-        my ( $db_file, $feed, $feed_id, $auto_tags, $extract_tags_from_url, $tag_categories, $extract_tags_from_title ) = @_;
-        my $items = get_feed_items( $feed, $auto_tags, $extract_tags_from_url, $tag_categories, $extract_tags_from_title );  
-        my $dbh = connect_to_db( $db_file );                                                       
+        my ( $feed, %params ) = @_;
+        
+        $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
+        $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
+        $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
+        
+        my $items = get_feed_items( $feed, %params );  
+        my $dbh = connect_to_db( $params{'db_file'} );                                                       
 
         foreach my $item ( @$items ){
                 # check to see if it exists already
@@ -137,7 +158,7 @@ sub update_feed {
                 unless( defined $row ){
                         $sth = $dbh->prepare( 
                                 "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) \
-                                VALUES( \"$item->{'guid'}\", \"$feed_id\", \"$item->{'title'}\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
+                                VALUES( \"$item->{'guid'}\", \"$params{'feed_id'}\", \"$item->{'title'}\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
                         ) or die "Can't prepare statement: $DBI::errstr";                                                                                        
                         $sth->execute() or die "Can't execute statement: $DBI::errstr";                                                                          
                 }                                                                                                                                                
@@ -155,9 +176,13 @@ sub connect_to_db {
 
 # parse the individual items from the feed
 sub get_feed_items {                      
-        my ( $feed, $auto_tags, $extract_tags_from_url, $tag_categories, $extract_tags_from_title ) = @_;
+        my ( $feed, %params ) = @_;
         my @items = ();                                                        
 	my @list = ();
+
+        $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
+        $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
+        $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
 	
 	# RSS
 	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
@@ -206,10 +231,10 @@ sub get_feed_items {
                 $link =~ s/\/+$//;
 
                 # add user-specified tags
-                push( @hashtags, @$auto_tags ) if defined $auto_tags;
+                push( @hashtags, @{$params{'auto_tags'}} ) if defined $params{'auto_tags'};
 
                 # try to guess tags from the url
-                if( $extract_tags_from_url ){   
+                if( $params{'extract_tags_from_url'} ){   
                         # grab last part of url 
                         $link =~ m/\/([^\/]+)$/;
                         my $link_part = $1;     
@@ -224,7 +249,7 @@ sub get_feed_items {
                 }                                 
 
                 # try to guess tags from the title
-                if( $extract_tags_from_title ){   
+                if( $params{'extract_tags_from_title'} ){   
                         # split up string
                         my @parts = split( /\s+/, $item->{'title'} );
 
@@ -232,7 +257,7 @@ sub get_feed_items {
                 } 
                 
                 # try to extract tags from the feed categories (if they exist)
-                if( $tag_categories and defined $item->{'category'} ){        
+                if( $params{'tag_categories'} and defined $item->{'category'} ){        
                         my @categories = ();                                  
 
                         if( ref $item->{'category'} ne 'ARRAY' ){
@@ -316,7 +341,7 @@ sub hashtagify {
 
 # publish a post to the pod
 sub publish_post {         
-        my ( $content, $pod_url, $username, $password, $aspect_ids ) = @_;
+        my ( $content, %params ) = @_;
         my $posted = 0;                                                   
 
         # create our user agent
@@ -326,11 +351,11 @@ sub publish_post {
         $ua->cookie_jar( {} );          
 
         # log in
-        my $login_response = login( $ua, $pod_url, $username, $password ) ;
+        my $login_response = login( $ua, $params{'pod_url'}, $params{'username'}, $params{'password'} ) ;
 
         # if we've logged in successfully, post the message
         if( $login_response->is_success ){                 
-                my $post = post_message( $ua, $pod_url, $content, $aspect_ids );
+                my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'} );
                 #logout( $ua, $pod_url );                                       
                 return $post;                                                   
         }                                                                       
