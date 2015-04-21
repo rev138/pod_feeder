@@ -31,7 +31,7 @@ This script is intended to be run as a cron job, which might look something like
     -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')
     -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)
     -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')
-    -e  --title-tags                     Automatically hashtagify RSS item title
+    -e   --title-tags                    Automatically hashtagify RSS item title
     -f   --feed-url <http://...>         The feed URL
     -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')
     -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed
