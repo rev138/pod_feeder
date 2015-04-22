@@ -11,24 +11,21 @@
 ## I owe a great debt to the code of diaspora-rss-bot (https://github.com/spkdev/diaspora-rss-bot)
 ## for helping me understand how play nice with CSRF tokens et al
 ##
-## You can initialize the database thusly:
-## $ echo "CREATE TABLE feeds( guid varchar(255) primary key, feed_id varchar(127), title varchar(255), link varchar(255), hashtags varchar(255), timestamp integer(10), posted integer(1) );" | sqlite3 feeds.db
-##
 
 use strict;
 use warnings;
+use utf8;
 use LWP::UserAgent;
 use URI::Escape;
 use HTML::Entities;
 use JSON;
 use XML::Simple;
 use DBI;
-use utf8;
 use Unicode::Normalize 'normalize';
 use Getopt::Long;
 
 my $opts = {
-        'database'              => './feeds.db',
+        'database'              => './pod_feeder.db',
         'timeout'               => 72,  # hours
 };
 my @auto_tags = ();
@@ -58,6 +55,10 @@ $aspect_ids[@aspect_ids] = 'public' unless @aspect_ids;
 
 # some feeds block bots, so you can spoof the user agent string with something such as 'Mozilla/5.0' to get around this
 my $user_agent = $opts->{'user-agent'} || undef;
+
+# initialize the database if it does not exist
+eval { init_database( $opts->{'database'} ) };
+die "ERROR: Coult not initialize the database: $@" if $@;
 
 # fetch the feed
 my ( $fetched, $feed ) = fetch_feed( $opts->{'feed-url'}, $user_agent );
@@ -457,6 +458,21 @@ sub post_message {
                 return $ua->post( $post_url, 'Content' => $json_message, 'Content-Type' => 'application/json; charset=UTF-8', 'X-CSRF-Token' => $csrf->{'token'}  );
         }
 
+}
+
+# create a new sqlite db file with a 'feeds' table if it does not exist already
+sub init_database {
+	my ( $db_file ) = @_;
+
+	unless( -e $db_file ){
+		my $dbh = connect_to_db( $db_file );
+        	my $sth = $dbh->prepare(
+        		'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+        	) or die "Can't prepare statement: $DBI::errstr";
+
+        	$sth->execute() or die "Can't execute statement: $DBI::errstr";
+        	$dbh->disconnect();
+	}
 }
 
 sub usage {
