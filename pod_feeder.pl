@@ -428,7 +428,7 @@ sub format_content {
         my ( $content ) = @_;
 
         $content =~ s/\n/\n\n/g;
-        $content .= "\n\nposted by [#pod_feeder](https://github.com/rev138/pod_feeder)";
+        $content .= "\nposted by [pod_feeder](https://github.com/rev138/pod_feeder)";
 
         return $content;
 }
@@ -441,7 +441,7 @@ sub post_message {
         if( $get_stream ){
                 my $csrf = extract_token( $result );
                 my $post_url = "$base_url/status_messages";
-                my $message = { status_message => { text => format_content( $content ) }, aspect_ids => $aspect_ids, 'status_message[provider_display_name]' => 'https://github.com/rev138/pod_feeder' };
+                my $message = { status_message => { text => format_content( $content ),  provider_display_name => 'pod_feeder' }, aspect_ids => $aspect_ids };
                 my $json = JSON->new->allow_nonref;
 
                 $json = $json->utf8(0) unless utf8::is_utf8( $message );
