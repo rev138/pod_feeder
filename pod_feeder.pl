@@ -53,9 +53,6 @@ GetOptions(
         'username|u=s',                         
 );                                              
 
-# make sure all tags start with '#'
-foreach my $tag ( @auto_tags ){ $tag =~ s/^([^#])/#$1/ }
-
 # defaults to 'public' if no aspect ids are specified
 $aspect_ids[@aspect_ids] = 'public' unless @aspect_ids;
 
@@ -72,7 +69,7 @@ if( $fetched ){
                 	$feed,
                 	db_file 		=> $opts->{'database'},
                 	feed_id 		=> $opts->{'feed-id'},
-                	auto_tags		=> \@auto_tags,
+                	auto_tags		=> hashtagify( \@auto_tags ),
                 	extract_tags_from_url	=> $opts->{'url-tags'},
                 	extract_tags_from_title	=> $opts->{'title-tags'},
                 	tag_categories		=> $opts->{'category-tags'},
@@ -206,7 +203,7 @@ sub get_feed_items {
                         $link_part =~ s/(\?.*)$//;
 
                         # split up string
-                        my @parts = split( /^(\p{Letter}|\p{Number})]/, $link_part );
+                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $link_part );
 
                         push( @hashtags, @parts );
                 }                                 
@@ -215,11 +212,11 @@ sub get_feed_items {
                 if( $params{'extract_tags_from_title'} ){
                 	my $title = $item->{'title'};
                 	
-                	# replace dashes with spaces
-                	$title =~ s/\p{Dash_Punctuation}/ /g;
-                	
-                        # split up string
-                        my @parts = split( /\s+/, $title );
+			#strip apostrophes
+			$title =~ s/'//g;
+       	
+                        # split up string on non-alphanumerics
+                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $title );           
 
                         push( @hashtags, @parts );
                 } 
