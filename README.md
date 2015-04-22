@@ -18,7 +18,6 @@ In order to use this script, you must first create a sqlite database, which can 
 - JSON
 - XML::Simple
 - DBI
-- utf8
 - Unicode::Normalize
 - Getopt::Long
 
