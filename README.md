@@ -20,6 +20,7 @@ In order to use this script, you must first create a sqlite database, which can 
 - DBI
 - Encode
 - utf8
+- Unicode::Normalize
 - Getopt::Long
 
 This script is intended to be run as a cron job, which might look something like this:
