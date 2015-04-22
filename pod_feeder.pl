@@ -178,50 +178,13 @@ sub connect_to_db {
 sub get_feed_items {                      
         my ( $feed, %params ) = @_;
         my @items = ();                                                        
-	my @list = ();
+	my $list = decode_feed( $feed );
 
         $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	
-	# RSS
-	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
-		@list = @{$feed->{'channel'}->{'item'}};
-	}
-	# Atom
-	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
-		my $entries = $feed->{'entry'};
-		
-		foreach my $guid ( keys %$entries ){
-			my $item = {
-				guid	=> $guid,
-			};
 
-			if( defined $entries->{$guid}->{'title'} ){
-				if( ref $entries->{$guid}->{'title'} eq 'HASH' and defined $entries->{$guid}->{'title'}->{'content'} ){
-					$item->{'title'} = $entries->{$guid}->{'title'}->{'content'};
-				}
-				elsif( ref $entries->{$guid}->{'title'} eq '' ){
-					$item->{'title'} = $entries->{$guid}->{'title'};
-				}
-			}
-
-			if( defined $entries->{$guid}->{'link'} ){
-				if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
-					$item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
-				}
-				elsif( ref $entries->{$guid}->{'link'} eq '' ){
-					$item->{'link'} = $entries->{$guid}->{'link'};
-				}
-			}
-						
-			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
-				
-			push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
-		}
-	}
-
-        foreach my $item ( @list ){
+        foreach my $item ( @$list ){
                 my $link = $item->{'link'};
                 my $title = 
                 my @hashtags = ();                           
@@ -301,6 +264,51 @@ sub get_feed_items {
 
         return \@items;
 }                      
+
+# extract the data we need based on feed type (RSS v. Atom)
+sub decode_feed{
+	my ( $feed ) = @_;
+	my @list = ();
+	
+	# RSS
+	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
+		@list = @{$feed->{'channel'}->{'item'}};
+	}
+	# Atom
+	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
+		my $entries = $feed->{'entry'};
+		
+		foreach my $guid ( keys %$entries ){
+			my $item = {
+				guid	=> $guid,
+			};
+
+			if( defined $entries->{$guid}->{'title'} ){
+				if( ref $entries->{$guid}->{'title'} eq 'HASH' and defined $entries->{$guid}->{'title'}->{'content'} ){
+					$item->{'title'} = $entries->{$guid}->{'title'}->{'content'};
+				}
+				elsif( ref $entries->{$guid}->{'title'} eq '' ){
+					$item->{'title'} = $entries->{$guid}->{'title'};
+				}
+			}
+
+			if( defined $entries->{$guid}->{'link'} ){
+				if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
+					$item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
+				}
+				elsif( ref $entries->{$guid}->{'link'} eq '' ){
+					$item->{'link'} = $entries->{$guid}->{'link'};
+				}
+			}
+						
+			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
+				
+			push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
+		}
+	}
+	
+	return \@list;
+}	
 
 # fetch the feed and convert the XML to an data object
 sub fetch_feed {                                      
