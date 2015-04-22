@@ -1,69 +1,69 @@
-#!/usr/bin/perl                          
+#!/usr/bin/perl
 
 ##
 ## pod_feeder.pl
-##              
+##
 ## A script to auto-post RSS/Atom feeds to a Diaspora account
-##                                                           
-## created 20150416 by Brian Ó <brian@hzsogood.net>          
-## (on diaspora: brian@diaspora.hzsogood.net)                
-##                                                           
-## I owe a great debt to the code of diaspora-rss-bot (https://github.com/spkdev/diaspora-rss-bot) 
-## for helping me understand how play nice with CSRF tokens et al                                  
-##                                                                                                 
-## You can initialize the database thusly:                                                         
+##
+## created 20150416 by Brian Ó <brian@hzsogood.net>
+## (on diaspora: brian@diaspora.hzsogood.net)
+##
+## I owe a great debt to the code of diaspora-rss-bot (https://github.com/spkdev/diaspora-rss-bot)
+## for helping me understand how play nice with CSRF tokens et al
+##
+## You can initialize the database thusly:
 ## $ echo "CREATE TABLE feeds( guid varchar(255) primary key, feed_id varchar(127), title varchar(255), link varchar(255), hashtags varchar(255), timestamp integer(10), posted integer(1) );" | sqlite3 feeds.db
-##                                                                                                                                                                                           
+##
 
 use strict;
 use warnings;
 use LWP::UserAgent;
-use URI::Escape;   
+use URI::Escape;
 use HTML::Entities;
-use JSON;          
-use XML::Simple;   
-use DBI;                 
+use JSON;
+use XML::Simple;
+use DBI;
 use utf8;
-use Unicode::Normalize 'normalize'; 
+use Unicode::Normalize 'normalize';
 use Getopt::Long;
 
 my $opts = {
         'database'              => './feeds.db',
         'timeout'               => 72,  # hours
-};                                             
-my @auto_tags = ();                            
-my @aspect_ids = ();                           
+};
+my @auto_tags = ();
+my @aspect_ids = ();
 
 GetOptions(
         $opts,
         'aspect-id|a=s'         => \@aspect_ids,
-        'auto-tag|t=s'          => \@auto_tags, 
-        'category-tags|c',                      
-        'database|d=s',                         
-        'feed-id|i=s',                          
-        'feed-url|f=s',                         
-        'fetch-only|o',                         
-        'help|h',               => \&usage,     
-        'password|p=s',                         
-        'pod-url|l=s',                          
-        'timeout|m=i',                          
+        'auto-tag|t=s'          => \@auto_tags,
+        'category-tags|c',
+        'database|d=s',
+        'feed-id|i=s',
+        'feed-url|f=s',
+        'fetch-only|o',
+        'help|h',               => \&usage,
+        'password|p=s',
+        'pod-url|l=s',
+        'timeout|m=i',
         'title-tags|e',
-        'url-tags|r',                           
-        'user-agent|g=s',                       
-        'username|u=s',                         
-);                                              
+        'url-tags|r',
+        'user-agent|g=s',
+        'username|u=s',
+);
 
 # defaults to 'public' if no aspect ids are specified
 $aspect_ids[@aspect_ids] = 'public' unless @aspect_ids;
 
 # some feeds block bots, so you can spoof the user agent string with something such as 'Mozilla/5.0' to get around this
-my $user_agent = $opts->{'user-agent'} || undef;                                                                       
+my $user_agent = $opts->{'user-agent'} || undef;
 
 # fetch the feed
 my ( $fetched, $feed ) = fetch_feed( $opts->{'feed-url'}, $user_agent );
 
 if( $fetched ){
-        eval { 
+        eval {
                 # update the database
                 update_feed(
                 	$feed,
@@ -74,8 +74,8 @@ if( $fetched ){
                 	extract_tags_from_title	=> $opts->{'title-tags'},
                 	tag_categories		=> $opts->{'category-tags'},
                 );
-        };                                                                                                                                
-        warn "$@" if $@;                                                                                                                  
+        };
+        warn "$@" if $@;
 
         eval {
                 # publish new feed items to the pod, unless the user specified --fetch-only
@@ -87,29 +87,29 @@ if( $fetched ){
                 	username	=> $opts->{'username'},
                 	password	=> $opts->{'password'},
                 	aspect_ids	=> \@aspect_ids,
-                ) unless $opts->{'fetch-only'}; 
-        };                                                                                                                                                                                            
-        warn "$@" if $@;                                                                                                                                                                              
-}                                                                                                                                                                                                     
-else {                                                                                                                                                                                                
-        die "Error fetching $opts->{'feed-url'} : " . $feed->code . ' ' . $feed->message;                                                                                                             
-}                                                                                                                                                                                                     
+                ) unless $opts->{'fetch-only'};
+        };
+        warn "$@" if $@;
+}
+else {
+        die "Error fetching $opts->{'feed-url'} : " . $feed->code . ' ' . $feed->message;
+}
 
 # publishes un-posted items in the database
-sub publish_feed_items {                         
+sub publish_feed_items {
         my ( %params ) = @_;
-        my @updates = ();                                                                     
+        my @updates = ();
 
         my $dbh = connect_to_db( $params{'db_file'} );
-        my $sth = $dbh->prepare(            
+        my $sth = $dbh->prepare(
                 "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == \"$params{'feed_id'}\" AND posted == 0 AND timestamp > " . ( time - ( $params{'timeout'} * 3600 ))
-        ) or die "Can't prepare statement: $DBI::errstr";                                                                                              
+        ) or die "Can't prepare statement: $DBI::errstr";
 
         $sth->execute() or die "Can't execute statement: $DBI::errstr";
 
         while( my $row = $sth->fetchrow_hashref() ){
-                push( @updates, $row );             
-        }                                           
+                push( @updates, $row );
+        }
 
         foreach my $update ( @updates ){
                 my $content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n$update->{'hashtags'}";
@@ -119,62 +119,62 @@ sub publish_feed_items {
                 my $post = publish_post( $content, %params );
 
                 # mark the item as successfully posted
-                if( $post->is_success ){              
+                if( $post->is_success ){
                         $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = \"$update->{'guid'}\"" ) or die "Can't prepare statement: $DBI::errstr";
-                        $sth->execute() or die "Can't execute statement: $DBI::errstr";                                                                         
-                }                                                                                                                                               
-                else {                                                                                                                                          
-                        warn $post->code . ' ' . $post->message;                                                                                                
-                }                                                                                                                                               
+                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                }
+                else {
+                        warn $post->code . ' ' . $post->message;
+                }
 
                 # Now, don't be hasty, master Meriadoc
-                sleep 1;                              
-        }                                             
+                sleep 1;
+        }
 
         $dbh->disconnect();
-}                          
+}
 
 # adds new feed items to the database
-sub update_feed {                    
+sub update_feed {
         my ( $feed, %params ) = @_;
-        
+
         $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-        
-        my $items = get_feed_items( $feed, %params );  
-        my $dbh = connect_to_db( $params{'db_file'} );                                                       
+
+        my $items = get_feed_items( $feed, %params );
+        my $dbh = connect_to_db( $params{'db_file'} );
 
         foreach my $item ( @$items ){
                 # check to see if it exists already
                 my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == \"$item->{'guid'}\" LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
-                $sth->execute() or die "Can't execute statement: $DBI::errstr";                                                                            
-                my $row = $sth->fetch();                                                                                                                   
+                $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                my $row = $sth->fetch();
 
                 # and if not, insert it
                 unless( defined $row ){
-                        $sth = $dbh->prepare( 
+                        $sth = $dbh->prepare(
                                 "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) \
                                 VALUES( \"$item->{'guid'}\", \"$params{'feed_id'}\", \"$item->{'title'}\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
-                        ) or die "Can't prepare statement: $DBI::errstr";                                                                                        
-                        $sth->execute() or die "Can't execute statement: $DBI::errstr";                                                                          
-                }                                                                                                                                                
-        }                                                                                                                                                        
+                        ) or die "Can't prepare statement: $DBI::errstr";
+                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                }
+        }
 
         $dbh->disconnect();
-}                          
+}
 
 sub connect_to_db {
         my ( $db_file ) = @_;
         my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '', { RaiseError => 1 } ) or die $DBI::errstr;
 
         return $dbh;
-}                   
+}
 
 # parse the individual items from the feed
-sub get_feed_items {                      
+sub get_feed_items {
         my ( $feed, %params ) = @_;
-        my @items = ();                                                        
+        my @items = ();
 	my $list = decode_feed( $feed );
 
         $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
@@ -183,9 +183,9 @@ sub get_feed_items {
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
-                my $title = 
-                my @hashtags = ();                           
-                my $guid = '';                               
+                my $title =
+                my @hashtags = ();
+                my $guid = '';
 
                 # strip trailing /
                 $link =~ s/\/+$//;
@@ -194,11 +194,11 @@ sub get_feed_items {
                 push( @hashtags, @{$params{'auto_tags'}} ) if defined $params{'auto_tags'};
 
                 # try to guess tags from the url
-                if( $params{'extract_tags_from_url'} ){   
-                        # grab last part of url 
+                if( $params{'extract_tags_from_url'} ){
+                        # grab last part of url
                         $link =~ m/\/([^\/]+)$/;
-                        my $link_part = $1;     
-                                                
+                        my $link_part = $1;
+
                         # strip off any url params
                         $link_part =~ s/(\?.*)$//;
 
@@ -206,67 +206,62 @@ sub get_feed_items {
                         my @parts = split( /[^(\p{Letter}|\p{Number})]/, $link_part );
 
                         push( @hashtags, @parts );
-                }                                 
+                }
 
                 # try to guess tags from the title
                 if( $params{'extract_tags_from_title'} ){
-                	my $title = $item->{'title'};
-                	
-			#strip apostrophes
-			$title =~ s/'//g;
-       	
                         # split up string on non-alphanumerics
-                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $title );           
+                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $item->{'title'} );
 
                         push( @hashtags, @parts );
-                } 
-                
+                }
+
                 # try to extract tags from the feed categories (if they exist)
-                if( $params{'tag_categories'} and defined $item->{'category'} ){        
-                        my @categories = ();                                  
+                if( $params{'tag_categories'} and defined $item->{'category'} ){
+                        my @categories = ();
 
                         if( ref $item->{'category'} ne 'ARRAY' ){
                                 @categories = ( $item->{'category'} );
-                        }                                             
-                        else {                                        
-                                @categories = @{$item->{'category'}}; 
-                        }                                             
+                        }
+                        else {
+                                @categories = @{$item->{'category'}};
+                        }
 
                         push ( @hashtags, @categories );
-                }                                       
+                }
 
                 @hashtags = sort @hashtags;
 
                 if( defined $item->{'guid'} ){
                         if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
-                                $guid = $item->{'guid'}->{'content'};                                
-                        }                                                                            
-                        else {                                                                       
-                                $guid = $item->{'guid'};                                             
-                        }                                                                            
-                }                                                                                    
-                elsif( defined $item->{'id'} ){                                                      
-                        $guid = $item->{'id'};                                                       
-                }                                                                                    
+                                $guid = $item->{'guid'}->{'content'};
+                        }
+                        else {
+                                $guid = $item->{'guid'};
+                        }
+                }
+                elsif( defined $item->{'id'} ){
+                        $guid = $item->{'id'};
+                }
 
                 my $obj = {
                         guid            => $guid,
                         title		=> $item->{'title'},
                         link            => $link,
                         hashtags        => hashtagify( \@hashtags ),
-                };                                                  
+                };
 
                 $items[@items] = $obj;
-        }                             
+        }
 
         return \@items;
-}                      
+}
 
 # extract the data we need based on feed type (RSS v. Atom)
 sub decode_feed{
 	my ( $feed ) = @_;
 	my @list = ();
-	
+
 	# RSS
 	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
 		@list = @{$feed->{'channel'}->{'item'}};
@@ -274,7 +269,7 @@ sub decode_feed{
 	# Atom
 	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
 		my $entries = $feed->{'entry'};
-		
+
 		foreach my $guid ( keys %$entries ){
 			my $item = {
 				guid	=> $guid,
@@ -297,20 +292,20 @@ sub decode_feed{
 					$item->{'link'} = $entries->{$guid}->{'link'};
 				}
 			}
-						
+
 			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
-				
+
 			push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
 		}
 	}
-	
+
 	return \@list;
-}	
+}
 
 # fetch the feed and convert the XML to an data object
-sub fetch_feed {                                      
-        my ( $feed_url, $user_agent_string ) = @_;    
-        my $ua = LWP::UserAgent->new();               
+sub fetch_feed {
+        my ( $feed_url, $user_agent_string ) = @_;
+        my $ua = LWP::UserAgent->new();
 
         $ua->agent( $user_agent_string ) if defined $user_agent_string;
 
@@ -318,21 +313,21 @@ sub fetch_feed {
 
         if( $response->is_success ){
                 return ( 1, XMLin normalize( 'D', $response->decoded_content ) );
-        }                                                      
-        else {                                                 
-                return ( 0, $response );                       
-        }                                                      
-}                                                              
+        }
+        else {
+                return ( 0, $response );
+        }
+}
 
 # sanitize and de-dupe tags
-sub hashtagify {           
+sub hashtagify {
         my ( $list_ref ) = @_;
-        my %hashtags = ();    
+        my %hashtags = ();
         my @list = @$list_ref;
 
         foreach my $item ( @list ){
                 # remove non-alphanumerics
-                $item =~ s/[^(\p{Letter}|\p{Number})]//g;   
+                $item =~ s/[^(\p{Letter}|\p{Number})]//g;
 
                 # drop stop words
                 next if length( $item ) < 3;
@@ -340,44 +335,44 @@ sub hashtagify {
                 # hashtagify it
                 $item = '#' . $item;
                 # use a hash here instead of an ordered list for auto-dedupe
-                $hashtags{ lc( $item ) } = undef;                           
-        }                                                                   
+                $hashtags{ lc( $item ) } = undef;
+        }
 
         my @deduped = keys %hashtags;
-        my @sorted = sort @deduped;  
+        my @sorted = sort @deduped;
 
         return \@sorted;
-}                       
+}
 
 # publish a post to the pod
-sub publish_post {         
+sub publish_post {
         my ( $content, %params ) = @_;
-        my $posted = 0;                                                   
+        my $posted = 0;
 
         # create our user agent
         my $ua = LWP::UserAgent->new( requests_redirectable => [ 'GET', 'HEAD', 'POST' ] );
 
         # initialize an empty cookie jar
-        $ua->cookie_jar( {} );          
+        $ua->cookie_jar( {} );
 
         # log in
         my $login_response = login( $ua, $params{'pod_url'}, $params{'username'}, $params{'password'} ) ;
 
         # if we've logged in successfully, post the message
-        if( $login_response->is_success ){                 
+        if( $login_response->is_success ){
                 my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'} );
-                #logout( $ua, $pod_url );                                       
-                return $post;                                                   
-        }                                                                       
-        else {                                                                  
-                return $login_response;                                         
-        }                                                                       
-}                                                                               
+                #logout( $ua, $pod_url );
+                return $post;
+        }
+        else {
+                return $login_response;
+        }
+}
 
 # log in to the pod
-sub login {        
+sub login {
         my ( $ua, $base_url, $username, $password ) = @_;
-        my $sign_in_url = "$base_url/users/sign_in";     
+        my $sign_in_url = "$base_url/users/sign_in";
 
         $ua->cookie_jar->clear();
 
@@ -385,53 +380,53 @@ sub login {
 
         if( $sign_in ){
                 my $csrf = extract_token( $result );
-                my $urlencoded_params = '';         
-                my $params = {                      
+                my $urlencoded_params = '';
+                my $params = {
                         $csrf->{'param'}        => $csrf->{'token'},
-                        'utf8'                  => '%E2%9C%93',     
-                        'user[username]'        => $username,       
-                        'user[password]'        => $password,       
-                        'user[remember_me]'     => 1,               
-                        'commit'                => 'Sign in'        
-                };                                                  
+                        'utf8'                  => '%E2%9C%93',
+                        'user[username]'        => $username,
+                        'user[password]'        => $password,
+                        'user[remember_me]'     => 1,
+                        'commit'                => 'Sign in'
+                };
 
                 foreach my $key ( keys %$params ){
                         $urlencoded_params .= uri_escape( $key ) . '=' . uri_escape( $params->{$key} ) . '&';
-                }                                                                                            
+                }
 
                 return $ua->post( $sign_in_url, 'Content' => $urlencoded_params, 'Content-Type' => 'application/x-www-form-urlencoded' );
-        }                                                                                                                                
-        else {                                                                                                                           
-                return $result;                                                                                                          
-        }                                                                                                                                
-}                                                                                                                                        
+        }
+        else {
+                return $result;
+        }
+}
 
 # retreive a web page via GET
-sub get_page {               
+sub get_page {
         my ( $ua, $url ) = @_;
         my $response = $ua->get( $url );
 
         if( $response->is_success ){
                 return ( 1, $response->decoded_content );
-        }                                                
-        else {                                           
-                return ( 0, $response );                 
-        }                                                
-}                                                        
+        }
+        else {
+                return ( 0, $response );
+        }
+}
 
 # extract the CSRF token from the page's source code
-sub extract_token {                                 
-        my ( $html ) = @_;                          
-        my $csrf = {};                              
+sub extract_token {
+        my ( $html ) = @_;
+        my $csrf = {};
 
         # parse out CSRF param and token
         $html =~ m/meta content="([^"]+)" name="csrf-param"/;
         $csrf->{'param'} = decode_entities( $1 ) if defined ( $1 );
-        $html =~ m/meta content="([^"]+)" name="csrf-token"/;      
+        $html =~ m/meta content="([^"]+)" name="csrf-token"/;
         $csrf->{'token'} = decode_entities( $1 ) if defined ( $1 );
 
         return $csrf if defined $csrf->{'param'} and defined $csrf->{'token'};
-}                                                                             
+}
 
 # make any necessary string manipulations to play nice with markdown
 sub format_content {
