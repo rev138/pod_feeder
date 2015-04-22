@@ -313,7 +313,7 @@ sub fetch_feed {
         my $response = $ua->get( $feed_url );
 
         if( $response->is_success ){
-                return ( 1, normalize( 'D', XMLin $response->decoded_content ) );
+                return ( 1, XMLin normalize( 'D', $response->decoded_content ) );
         }                                                      
         else {                                                 
                 return ( 0, $response );                       
