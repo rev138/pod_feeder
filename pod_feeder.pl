@@ -24,8 +24,9 @@ use JSON;
 use XML::Simple;   
 use DBI;           
 use Encode;        
-use utf8;          
-use Getopt::Long;  
+use utf8;
+use Unicode::Normalize 'normalize'; 
+use Getopt::Long;
 
 my $opts = {
         'database'              => './feeds.db',
@@ -250,8 +251,13 @@ sub get_feed_items {
 
                 # try to guess tags from the title
                 if( $params{'extract_tags_from_title'} ){
+                	my $title = $item->{'title'};
+                	
+                	# replace dashes with spaces
+                	$title =~ s/\p{Dash_Punctuation}/ /g;
+                	
                         # split up string
-                        my @parts = split( /\s+/, $item->{'title'} );
+                        my @parts = split( /\s+/, $title );
 
                         push( @hashtags, @parts );
                 } 
@@ -307,7 +313,7 @@ sub fetch_feed {
         my $response = $ua->get( $feed_url );
 
         if( $response->is_success ){
-                return ( 1, XMLin $response->decoded_content );
+                return ( 1, normalize( 'D', XMLin $response->decoded_content ) );
         }                                                      
         else {                                                 
                 return ( 0, $response );                       
