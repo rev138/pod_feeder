@@ -243,13 +243,13 @@ sub get_feed_items {
                         $link_part =~ s/(\?.*)$//;
 
                         # split up string
-                        my @parts = split( /[^A-Za-z0-9]/, $link_part );
+                        my @parts = split( /^(\p{Letter}|\p{Number})]/, $link_part );
 
                         push( @hashtags, @parts );
                 }                                 
 
                 # try to guess tags from the title
-                if( $params{'extract_tags_from_title'} ){   
+                if( $params{'extract_tags_from_title'} ){
                         # split up string
                         my @parts = split( /\s+/, $item->{'title'} );
 
@@ -321,8 +321,8 @@ sub hashtagify {
         my @list = @$list_ref;
 
         foreach my $item ( @list ){
-                # remove non-alphanumerics and spaces
-                $item =~ s/[^A-Za-z0-9]//g;   
+                # remove non-alphanumerics
+                $item =~ s/[^(\p{Letter}|\p{Number})]//g;   
 
                 # drop stop words
                 next if length( $item ) < 3;
