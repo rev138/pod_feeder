@@ -117,11 +117,12 @@ sub publish_feed_items {
         foreach my $update ( @updates ){
                 my $content = $update->{'hashtags'};
 
+		# to hyperlink the title or not to hyperlink the title...
                 if( $params{'raw_link'} ){
-                	$content = $update->{'title'} . "\n" . $update->{'link'} . "\n" . $content;
+                	$content = '### ' . $update->{'title'} . "\n" . $update->{'link'} . "\n" . $content;
                 }
                 else {
-                	$content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n" . $content;
+                	$content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n" . $content;
                 }
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
