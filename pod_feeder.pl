@@ -119,7 +119,7 @@ sub publish_feed_items {
 
 		# to hyperlink the title or not to hyperlink the title...
                 if( $params{'raw_link'} ){
-                	$content = '### ' . $update->{'title'} . "\n" . $update->{'link'} . "\n" . $content;
+                	$content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
                 }
                 else {
                 	$content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n" . $content;
