@@ -43,6 +43,7 @@ GetOptions(
         'help|h',               => \&usage,
         'password|p=s',
         'pod-url|l=s',
+        'post-raw-links|w',
         'timeout|m=i',
         'title-tags|e',
         'url-tags|r',
@@ -88,6 +89,7 @@ if( $fetched ){
                 	username	=> $opts->{'username'},
                 	password	=> $opts->{'password'},
                 	aspect_ids	=> \@aspect_ids,
+                	raw_link	=> $opts->{'post-raw-links'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -103,17 +105,24 @@ sub publish_feed_items {
 
         my $dbh = connect_to_db( $params{'db_file'} );
         my $sth = $dbh->prepare(
-                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == \"$params{'feed_id'}\" AND posted == 0 AND timestamp > " . ( time - ( $params{'timeout'} * 3600 ))
+                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ?"
         ) or die "Can't prepare statement: $DBI::errstr";
 
-        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+        $sth->execute( $params{'feed_id'}, time - ( $params{'timeout'} * 3600 ) ) or die "Can't execute statement: $DBI::errstr";
 
         while( my $row = $sth->fetchrow_hashref() ){
                 push( @updates, $row );
         }
 
         foreach my $update ( @updates ){
-                my $content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n$update->{'hashtags'}";
+                my $content = $update->{'hashtags'};
+
+                if( $params{'raw_link'} ){
+                	$content = $update->{'title'} . "\n" . $update->{'link'} . "\n" . $content;
+                }
+                else {
+                	$content = '[' . $update->{'title'} . '](' . $update->{'link'} . ")\n" . $content;
+                }
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
 
@@ -121,8 +130,8 @@ sub publish_feed_items {
 
                 # mark the item as successfully posted
                 if( $post->is_success ){
-                        $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = \"$update->{'guid'}\"" ) or die "Can't prepare statement: $DBI::errstr";
-                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                        $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = ?" ) or die "Can't prepare statement: $DBI::errstr";
+                        $sth->execute( $update->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
                 }
                 else {
                         warn $post->code . ' ' . $post->message;
@@ -148,17 +157,24 @@ sub update_feed {
 
         foreach my $item ( @$items ){
                 # check to see if it exists already
-                my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == \"$item->{'guid'}\" LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
-                $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
+                $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
                 my $row = $sth->fetch();
 
                 # and if not, insert it
                 unless( defined $row ){
                         $sth = $dbh->prepare(
-                                "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) \
-                                VALUES( \"$item->{'guid'}\", \"$params{'feed_id'}\", \"$item->{'title'}\", \"$item->{'link'}\", \"" . join( ' ', @{$item->{'hashtags'}} ) . '", 0, ' . time . ')'
+                                "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?)"
                         ) or die "Can't prepare statement: $DBI::errstr";
-                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                        $sth->execute(
+                        	$item->{'guid'},
+                        	$params{'feed_id'},
+                        	$item->{'title'},
+                        	$item->{'link'},
+                        	join( ' ', @{$item->{'hashtags'}} ),
+                        	0,
+                        	time,
+                        ) or die "Can't execute statement: $DBI::errstr";
                 }
         }
 
@@ -497,6 +513,7 @@ sub usage {
         print "    -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)\n";
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
+        print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
         print "\n";
 
         exit;

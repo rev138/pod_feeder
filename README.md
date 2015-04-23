@@ -36,3 +36,4 @@ This script is intended to be run as a cron job, which might look something like
     -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)
     -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)
     -u   --username <user>               The D* login username
+    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)
