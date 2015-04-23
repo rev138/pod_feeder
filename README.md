@@ -37,3 +37,17 @@ This script is intended to be run as a cron job, which might look something like
     -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)
     -u   --username <user>               The D* login username
     -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)
+
+## A Note on YouTube Feeds
+
+It is possible to publish a YouTube channel's feed, however YT makes it a little difficult:
+
+Get the URL of the YouTube Channel, ex:
+
+https://www.youtube.com/channel/UCQzdMyuz0Lf4zo4uGcEujFw
+
+Modify it thusly, then feed it to the script:
+
+[https://www.youtube.com/**rss**/channel/UCQzdMyuz0Lf4zo4uGcEujFw/**feed.rss**](https://www.youtube.com/rss/channel/UCQzdMyuz0Lf4zo4uGcEujFw/feed.rss)
+
+If you'd want Diaspora to automatically embed the video, you must also pass the `--post-raw-link` argument
