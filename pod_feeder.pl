@@ -204,7 +204,7 @@ sub get_feed_items {
                         $link_part =~ s/(\?.*)$//;
 
                         # split up string
-                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $link_part );
+                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $link_part );
 
                         push( @hashtags, @parts );
                 }
@@ -212,9 +212,14 @@ sub get_feed_items {
                 # try to guess tags from the title
                 if( $params{'extract_tags_from_title'} ){
                         # split up string on non-alphanumerics
-                        my @parts = split( /[^(\p{Letter}|\p{Number})]/, $item->{'title'} );
+                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $item->{'title'} );
+			my @tags = ();
 
-                        push( @hashtags, @parts );
+			foreach my $part ( @parts ){
+				push( @tags, $part ) unless $part =~ m/^(\s+)?$/;
+			}
+
+                        push( @hashtags, @tags );
                 }
 
                 # try to extract tags from the feed categories (if they exist)
