@@ -122,7 +122,7 @@ sub publish_feed_items {
                 	$content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
                 }
                 else {
-                	$content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n" . $content;
+                	$content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
                 }
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
