@@ -443,9 +443,11 @@ sub extract_token {
         my $csrf = {};
 
         # parse out CSRF param and token
-        $html =~ m/meta content="([^"]+)" name="csrf-param"/;
+#        $html =~ m/meta content="([^"]+)" name="csrf-param"/;
+        $html =~ m/meta name="csrf-param" content="([^"]+)"/;
         $csrf->{'param'} = decode_entities( $1 ) if defined ( $1 );
-        $html =~ m/meta content="([^"]+)" name="csrf-token"/;
+#        $html =~ m/meta content="([^"]+)" name="csrf-token"/;
+        $html =~ m/meta name="csrf-token" content="([^"]+)"/;
         $csrf->{'token'} = decode_entities( $1 ) if defined ( $1 );
 
         return $csrf if defined $csrf->{'param'} and defined $csrf->{'token'};
