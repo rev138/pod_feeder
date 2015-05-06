@@ -522,7 +522,7 @@ sub usage {
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
-        print "    -x	--limit <n>			Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "    -x	 --limit <n>			 Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
         exit;
