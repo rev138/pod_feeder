@@ -37,6 +37,7 @@ This script is intended to be run as a cron job, which might look something like
     -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)
     -u   --username <user>               The D* login username
     -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)
+    -x   --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)
 
 ## A Note on YouTube Feeds
 
