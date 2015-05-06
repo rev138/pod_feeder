@@ -26,6 +26,7 @@ use Getopt::Long;
 
 my $opts = {
         'database'              => './pod_feeder.db',
+        'limit'			=> 0,
         'timeout'               => 72,  # hours
 };
 my @auto_tags = ();
@@ -41,6 +42,7 @@ GetOptions(
         'feed-url|f=s',
         'fetch-only|o',
         'help|h',               => \&usage,
+        'limit|x=i',
         'password|p=s',
         'pod-url|l=s',
         'post-raw-links|w',
@@ -90,6 +92,7 @@ if( $fetched ){
                 	password	=> $opts->{'password'},
                 	aspect_ids	=> \@aspect_ids,
                 	raw_link	=> $opts->{'post-raw-links'},
+                	limit		=> $opts->{'limit'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -102,11 +105,13 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-
+	my $query_string = "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
-        my $sth = $dbh->prepare(
-                "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ?"
-        ) or die "Can't prepare statement: $DBI::errstr";
+        
+        # limit the number of items published if limit is specified
+        $query_string .= " LIMIT $params{'limit'}" if $params{'limit'} > 0;
+        
+        my $sth = $dbh->prepare( $query_string ) or die "Can't prepare statement: $DBI::errstr";
 
         $sth->execute( $params{'feed_id'}, time - ( $params{'timeout'} * 3600 ) ) or die "Can't execute statement: $DBI::errstr";
 
@@ -517,6 +522,7 @@ sub usage {
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
+        print "    -x	--limit <n>			Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
         exit;
