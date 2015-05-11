@@ -233,8 +233,13 @@ sub get_feed_items {
 
                 # try to guess tags from the title
                 if( $params{'extract_tags_from_title'} ){
+			my $title = $item->{'title'};
+
+			# strip apostrophes
+			$title =~ s/'//g;
+
                         # split up string on non-alphanumerics
-                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $item->{'title'} );
+                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $title );
 			my @tags = ();
 
 			foreach my $part ( @parts ){
