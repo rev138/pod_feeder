@@ -7,6 +7,7 @@
 ##
 ## created 20150416 by Brian Ó <brian@hzsogood.net>
 ## (on diaspora: brian@diaspora.hzsogood.net)
+## https://github.com/rev138/pod_feeder
 ##
 ## I owe a great debt to the code of diaspora-rss-bot (https://github.com/spkdev/diaspora-rss-bot)
 ## for helping me understand how play nice with CSRF tokens et al
@@ -381,7 +382,7 @@ sub post_message {
         if( $get_stream ){
                 my $csrf = extract_token( $result );
                 my $post_url = "$base_url/status_messages";
-                my $message = { status_message => { text => format_content( $content ),  provider_display_name => 'pod_feeder' }, aspect_ids => $aspect_ids };
+                my $message = { status_message => { text => format_content( $content ),  provider_display_name => 'pod_tweeter' }, aspect_ids => $aspect_ids };
                 my $json = JSON->new->allow_nonref;
 
                 $json = $json->utf8(0) unless utf8::is_utf8( $message );
