@@ -36,12 +36,12 @@ my @aspect_ids = ();
 
 GetOptions(
         $opts,
-	'access-token=s',
-	'access-token-secret=s',
+	'access-token|k=s',
+	'access-token-secret|e=s',
         'aspect-id|a=s'         => \@aspect_ids,
         'auto-tag|t=s'          => \@auto_tags,
-	'consumer-key=s',
-	'consumer-secret=s',
+	'consumer-key|c=s',
+	'consumer-secret|r=s',
         'database|d=s',
         'timeline-id|i=s',
         'fetch-only|o',
@@ -414,20 +414,19 @@ sub usage {
         print "$0\n";
         print "usage:\n";
         print "    -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')\n";
-        print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
+	print "    -c   --consumer-key <string>         The twitter API consumer key\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e	 --title-tags			 Automatically hashtagify RSS item title\n";
-        print "    -f   --feed-url <http://...>         The feed URL\n";
-        print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
-        print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
+	print "    -e   --access-token-secret <string>  The twitter API access token secret\n";
+        print "    -i   --timeline-id <string>	         An arbitrary identifier to associate database entries with this feed\n";
+	print "    -k   --access-token <string>         The twitter API access token\n";
         print "    -l   --pod-url <https://...>         The pod URL\n";
-        print "    -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default 72)\n";
+        print "    -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default: 72)\n";
         print "    -o   --fetch-only                    Don't publish to Diaspora, just queue the new feed items for later\n";
         print "    -p   --password <********>           The D* user password\n";
-        print "    -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)\n";
+	print "    -r   --consumer-secret <string>      The twitter API consumer secret\n";
+	print "    -s   --screen-name <\@screenname>     The twitter feed to scrape (default: the user associated with the API keys)\n";
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
-        print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
         print "    -x	 --limit <n>			 Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
