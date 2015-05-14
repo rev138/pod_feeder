@@ -180,7 +180,7 @@ sub publish_feed_items {
 
                 # mark the item as successfully posted
                 if( $post->is_success ){
-                        $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE id = ?" ) or die "Can't prepare statement: $DBI::errstr";
+                        $sth = $dbh->prepare( "UPDATE tweets SET posted = 1 WHERE id = ?" ) or die "Can't prepare statement: $DBI::errstr";
                         $sth->execute( $update->{'id'} ) or die "Can't execute statement: $DBI::errstr";
                 }
                 else {
