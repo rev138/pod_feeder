@@ -276,6 +276,9 @@ sub get_feed_items {
                 elsif( defined $item->{'id'} ){
                         $guid = $item->{'id'};
                 }
+		elsif( defined $item->{'link'} ){
+			$guid = $item->{'link'};
+		}
 
                 my $obj = {
                         guid            => $guid,
