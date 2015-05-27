@@ -208,7 +208,7 @@ sub get_feed_items {
                 my $link = $item->{'link'};
 
                 # no link, no go
-                next unless defined $link and ref $link eq 'SCALAR';
+                next unless defined $link and ref $link ne 'HASH' and ref $link ne 'ARRAY';
 
                 my @hashtags = ();
                 my $guid = undef;
