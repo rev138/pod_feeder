@@ -26,7 +26,7 @@ use Getopt::Long;
 
 my $opts = {
         'database'              => './pod_feeder.db',
-        'limit'			=> 0,
+        'limit'                 => 0,
         'timeout'               => 72,  # hours
 };
 my @auto_tags = ();
@@ -70,13 +70,13 @@ if( $fetched ){
         eval {
                 # update the database
                 update_feed(
-                	$feed,
-                	db_file 		=> $opts->{'database'},
-                	feed_id 		=> $opts->{'feed-id'},
-                	auto_tags		=> hashtagify( \@auto_tags ),
-                	extract_tags_from_url	=> $opts->{'url-tags'},
-                	extract_tags_from_title	=> $opts->{'title-tags'},
-                	tag_categories		=> $opts->{'category-tags'},
+                        $feed,
+                        db_file                 => $opts->{'database'},
+                        feed_id                 => $opts->{'feed-id'},
+                        auto_tags               => hashtagify( \@auto_tags ),
+                        extract_tags_from_url   => $opts->{'url-tags'},
+                        extract_tags_from_title => $opts->{'title-tags'},
+                        tag_categories          => $opts->{'category-tags'},
                 );
         };
         warn "$@" if $@;
@@ -84,15 +84,15 @@ if( $fetched ){
         eval {
                 # publish new feed items to the pod, unless the user specified --fetch-only
                 publish_feed_items(
-                	db_file		=> $opts->{'database'},
-                	feed_id		=> $opts->{'feed-id'},
-                	timeout		=> $opts->{'timeout'},
-                	pod_url		=> $opts->{'pod-url'},
-                	username	=> $opts->{'username'},
-                	password	=> $opts->{'password'},
-                	aspect_ids	=> \@aspect_ids,
-                	raw_link	=> $opts->{'post-raw-links'},
-                	limit		=> $opts->{'limit'},
+                        db_file         => $opts->{'database'},
+                        feed_id         => $opts->{'feed-id'},
+                        timeout         => $opts->{'timeout'},
+                        pod_url         => $opts->{'pod-url'},
+                        username        => $opts->{'username'},
+                        password        => $opts->{'password'},
+                        aspect_ids      => \@aspect_ids,
+                        raw_link        => $opts->{'post-raw-links'},
+                        limit           => $opts->{'limit'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -105,7 +105,7 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-	my $query_string = "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
+        my $query_string = "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
         
         # limit the number of items published if limit is specified
@@ -122,12 +122,12 @@ sub publish_feed_items {
         foreach my $update ( @updates ){
                 my $content = $update->{'hashtags'};
 
-		# to hyperlink the title or not to hyperlink the title...
+                # to hyperlink the title or not to hyperlink the title...
                 if( $params{'raw_link'} ){
-                	$content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
+                        $content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
                 }
                 else {
-                	$content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
+                        $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
                 }
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
@@ -173,13 +173,13 @@ sub update_feed {
                                 "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?)"
                         ) or die "Can't prepare statement: $DBI::errstr";
                         $sth->execute(
-                        	$item->{'guid'},
-                        	$params{'feed_id'},
-                        	$item->{'title'},
-                        	$item->{'link'},
-                        	join( ' ', @{$item->{'hashtags'}} ),
-                        	0,
-                        	time,
+                                $item->{'guid'},
+                                $params{'feed_id'},
+                                $item->{'title'},
+                                $item->{'link'},
+                                join( ' ', @{$item->{'hashtags'}} ),
+                                0,
+                                time,
                         ) or die "Can't execute statement: $DBI::errstr";
                 }
         }
@@ -198,7 +198,7 @@ sub connect_to_db {
 sub get_feed_items {
         my ( $feed, %params ) = @_;
         my @items = ();
-	my $list = decode_feed( $feed );
+        my $list = decode_feed( $feed );
 
         $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
@@ -206,12 +206,15 @@ sub get_feed_items {
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
-                my $title =
+
+                # no link, no go
+                next unless defined $link and ref $link ne 'HASH' and ref $link ne 'ARRAY';
+
                 my @hashtags = ();
-                my $guid = '';
+                my $guid = undef;
 
                 # strip trailing /
-                $link =~ s/\/+$//;
+                $link =~ s/\/+$// if defined $link;
 
                 # add user-specified tags
                 push( @hashtags, @{$params{'auto_tags'}} ) if defined $params{'auto_tags'};
@@ -233,18 +236,18 @@ sub get_feed_items {
 
                 # try to guess tags from the title
                 if( $params{'extract_tags_from_title'} ){
-			my $title = $item->{'title'};
+                        my $title = $item->{'title'};
 
-			# strip apostrophes
-			$title =~ s/'//g;
+                        # strip apostrophes
+                        $title =~ s/'//g;
 
                         # split up string on non-alphanumerics
                         my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $title );
-			my @tags = ();
+                        my @tags = ();
 
-			foreach my $part ( @parts ){
-				push( @tags, $part ) unless $part =~ m/^(\s+)?$/;
-			}
+                        foreach my $part ( @parts ){
+                                push( @tags, $part ) unless $part =~ m/^(\s+)?$/;
+                        }
 
                         push( @hashtags, @tags );
                 }
@@ -269,20 +272,18 @@ sub get_feed_items {
                         if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
                                 $guid = $item->{'guid'}->{'content'};
                         }
-                        else {
+                        elsif( ref $item->{'guid'} ne 'HASH' ) {
                                 $guid = $item->{'guid'};
                         }
                 }
                 elsif( defined $item->{'id'} ){
                         $guid = $item->{'id'};
                 }
-		elsif( defined $item->{'link'} ){
-			$guid = $item->{'link'};
-		}
+                else { $guid = $link }
 
                 my $obj = {
                         guid            => $guid,
-                        title		=> $item->{'title'},
+                        title           => $item->{'title'},
                         link            => $link,
                         hashtags        => hashtagify( \@hashtags ),
                 };
@@ -295,47 +296,47 @@ sub get_feed_items {
 
 # extract the data we need based on feed type (RSS v. Atom)
 sub decode_feed{
-	my ( $feed ) = @_;
-	my @list = ();
+        my ( $feed ) = @_;
+        my @list = ();
 
-	# RSS
-	if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
-		@list = @{$feed->{'channel'}->{'item'}};
-	}
-	# Atom
-	elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
-		my $entries = $feed->{'entry'};
+        # RSS
+        if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
+                @list = @{$feed->{'channel'}->{'item'}};
+        }
+        # Atom
+        elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
+                my $entries = $feed->{'entry'};
 
-		foreach my $guid ( keys %$entries ){
-			my $item = {
-				guid	=> $guid,
-			};
+                foreach my $guid ( keys %$entries ){
+                        my $item = {
+                                guid    => $guid,
+                        };
 
-			if( defined $entries->{$guid}->{'title'} ){
-				if( ref $entries->{$guid}->{'title'} eq 'HASH' and defined $entries->{$guid}->{'title'}->{'content'} ){
-					$item->{'title'} = $entries->{$guid}->{'title'}->{'content'};
-				}
-				elsif( ref $entries->{$guid}->{'title'} eq '' ){
-					$item->{'title'} = $entries->{$guid}->{'title'};
-				}
-			}
+                        if( defined $entries->{$guid}->{'title'} ){
+                                if( ref $entries->{$guid}->{'title'} eq 'HASH' and defined $entries->{$guid}->{'title'}->{'content'} ){
+                                        $item->{'title'} = $entries->{$guid}->{'title'}->{'content'};
+                                }
+                                elsif( ref $entries->{$guid}->{'title'} eq '' ){
+                                        $item->{'title'} = $entries->{$guid}->{'title'};
+                                }
+                        }
 
-			if( defined $entries->{$guid}->{'link'} ){
-				if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
-					$item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
-				}
-				elsif( ref $entries->{$guid}->{'link'} eq '' ){
-					$item->{'link'} = $entries->{$guid}->{'link'};
-				}
-			}
+                        if( defined $entries->{$guid}->{'link'} ){
+                                if( ref $entries->{$guid}->{'link'} eq 'HASH' and defined $entries->{$guid}->{'link'}->{'href'} ){
+                                        $item->{'link'} = $entries->{$guid}->{'link'}->{'href'};
+                                }
+                                elsif( ref $entries->{$guid}->{'link'} eq '' ){
+                                        $item->{'link'} = $entries->{$guid}->{'link'};
+                                }
+                        }
 
-			$item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
+                        $item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
 
-			push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
-		}
-	}
+                        push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
+                }
+        }
 
-	return \@list;
+        return \@list;
 }
 
 # fetch the feed and convert the XML to an data object
@@ -499,17 +500,17 @@ sub post_message {
 
 # create a new sqlite db file with a 'feeds' table if it does not exist already
 sub init_database {
-	my ( $db_file ) = @_;
+        my ( $db_file ) = @_;
 
-	unless( -e $db_file ){
-		my $dbh = connect_to_db( $db_file );
-        	my $sth = $dbh->prepare(
-        		'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
-        	) or die "Can't prepare statement: $DBI::errstr";
+        unless( -e $db_file ){
+                my $dbh = connect_to_db( $db_file );
+                my $sth = $dbh->prepare(
+                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+                ) or die "Can't prepare statement: $DBI::errstr";
 
-        	$sth->execute() or die "Can't execute statement: $DBI::errstr";
-        	$dbh->disconnect();
-	}
+                $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                $dbh->disconnect();
+        }
 }
 
 sub usage {
@@ -518,7 +519,7 @@ sub usage {
         print "    -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e	 --title-tags			 Automatically hashtagify RSS item title\n";
+        print "    -e    --title-tags                    Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
@@ -530,7 +531,7 @@ sub usage {
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
-        print "    -x	 --limit <n>			 Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "    -x    --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
         exit;
