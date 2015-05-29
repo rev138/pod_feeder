@@ -239,7 +239,7 @@ sub get_feed_items {
                         my $title = $item->{'title'};
 
                         # strip apostrophes
-                        $title =~ s/'//g;
+                        $title =~ s/('|`)//g;
 
                         # split up string on non-alphanumerics
                         my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $title );
