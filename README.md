@@ -41,14 +41,8 @@ This script is intended to be run as a cron job, which might look something like
 
 ## A Note on YouTube Feeds
 
-It is possible to publish a YouTube channel's feed, however YT makes it a little difficult:
+It is possible to publish a YouTube channel's feed, by using the following URL format:
 
-Get the URL of the YouTube Channel, ex:
-
-https://www.youtube.com/channel/UCQzdMyuz0Lf4zo4uGcEujFw
-
-Modify it thusly, then feed it to the script:
-
-[https://www.youtube.com/**rss**/channel/UCQzdMyuz0Lf4zo4uGcEujFw/**feed.rss**](https://www.youtube.com/rss/channel/UCQzdMyuz0Lf4zo4uGcEujFw/feed.rss)
+    https://www.youtube.com/feeds/videos.xml?channel_id=<channel id>
 
 If you'd want Diaspora to automatically embed the video, you must also pass the `--post-raw-link` argument
