@@ -44,5 +44,3 @@ This script is intended to be run as a cron job, which might look something like
 It is possible to publish a YouTube channel's feed, by using the following URL format:
 
     https://www.youtube.com/feeds/videos.xml?channel_id=<channel id>
-
-If you'd want Diaspora to automatically embed the video, you must also pass the `--post-raw-link` argument
