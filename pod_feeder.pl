@@ -542,10 +542,10 @@ sub usage {
         print "$0\n";
         print "usage:\n";
         print "    -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')\n";
-	print "    -b   --embed-image			Embed an image in the post if a link exists (default: off)\n";
+	print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e    --title-tags                    Automatically hashtagify RSS item title\n";
+        print "    -e    --title-tags                   Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
@@ -557,7 +557,7 @@ sub usage {
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
-        print "    -x    --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "    -x    --limit <n>                    Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
         exit;
