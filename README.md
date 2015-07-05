@@ -23,6 +23,7 @@ This script is intended to be run as a cron job, which might look something like
 ## Usage
 
     -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')
+    -b   --embed-image                   Embed an image in the post if a link exists (default: off)
     -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)
     -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')
     -e   --title-tags                    Automatically hashtagify RSS item title
