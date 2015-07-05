@@ -282,7 +282,7 @@ sub get_feed_items {
 		# extract image link and hover text if it exists
 		if( defined $item->{'description'} ){
 			if( $item->{'description'} =~ / src="(https?:\/\/[^"]+)/ ){
-				$image = $2 if defined $2;
+				$image = $1 if defined $1;
 					if( $item->{'description'} =~ / title="([^"]+)/ ){
 						$image_title = $1 if defined $1;
 				}
