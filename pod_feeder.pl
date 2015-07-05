@@ -38,6 +38,7 @@ GetOptions(
         'auto-tag|t=s'          => \@auto_tags,
         'category-tags|c',
         'database|d=s',
+	'embed-image|b',
         'feed-id|i=s',
         'feed-url|f=s',
         'fetch-only|o',
@@ -85,6 +86,7 @@ if( $fetched ){
                 # publish new feed items to the pod, unless the user specified --fetch-only
                 publish_feed_items(
                         db_file         => $opts->{'database'},
+			embed_image	=> $opts->{'embed-image'},
                         feed_id         => $opts->{'feed-id'},
                         timeout         => $opts->{'timeout'},
                         pod_url         => $opts->{'pod-url'},
@@ -105,7 +107,7 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-        my $query_string = "SELECT guid, title, link, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
+        my $query_string = "SELECT guid, title, link, image, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
         
         # limit the number of items published if limit is specified
@@ -121,6 +123,10 @@ sub publish_feed_items {
 
         foreach my $update ( @updates ){
                 my $content = $update->{'hashtags'};
+
+		if( $params{'embed_image'} and length $update->{'image'} ){
+			$content = '![](' . $update->{'image'} . ")\n$content";
+		}
 
                 # to hyperlink the title or not to hyperlink the title...
                 if( $params{'raw_link'} ){
@@ -170,13 +176,14 @@ sub update_feed {
                 # and if not, insert it
                 unless( defined $row ){
                         $sth = $dbh->prepare(
-                                "INSERT INTO feeds( guid, feed_id, title, link, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?)"
+                                "INSERT INTO feeds( guid, feed_id, title, link, image, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?)"
                         ) or die "Can't prepare statement: $DBI::errstr";
                         $sth->execute(
                                 $item->{'guid'},
                                 $params{'feed_id'},
                                 $item->{'title'},
                                 $item->{'link'},
+				$item->{'image'},
                                 join( ' ', @{$item->{'hashtags'}} ),
                                 0,
                                 time,
@@ -212,6 +219,7 @@ sub get_feed_items {
 
                 my @hashtags = ();
                 my $guid = undef;
+		my $image = '';
 
                 # strip trailing /
                 $link =~ s/\/+$// if defined $link;
@@ -266,6 +274,12 @@ sub get_feed_items {
                         push ( @hashtags, @categories );
                 }
 
+		# extract image link if it exists
+		if( defined $item->{'description'} ){
+			$item->{'description'} =~ /src=('|")(https?:\/\/[^'|"]+)/;
+			$image = $2 if defined $2;
+		}
+
                 @hashtags = sort @hashtags;
 
                 if( defined $item->{'guid'} ){
@@ -285,6 +299,7 @@ sub get_feed_items {
                         guid            => $guid,
                         title           => $item->{'title'},
                         link            => $link,
+			image		=> $image,
                         hashtags        => hashtagify( \@hashtags ),
                 };
 
@@ -505,7 +520,7 @@ sub init_database {
         unless( -e $db_file ){
                 my $dbh = connect_to_db( $db_file );
                 my $sth = $dbh->prepare(
-                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
                 ) or die "Can't prepare statement: $DBI::errstr";
 
                 $sth->execute() or die "Can't execute statement: $DBI::errstr";
@@ -517,6 +532,7 @@ sub usage {
         print "$0\n";
         print "usage:\n";
         print "    -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')\n";
+	print "    -b   --embed-image			Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
         print "    -e    --title-tags                    Automatically hashtagify RSS item title\n";
