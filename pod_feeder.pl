@@ -107,7 +107,7 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-        my $query_string = "SELECT guid, title, link, image, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
+        my $query_string = "SELECT guid, title, link, image, image_title, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
         
         # limit the number of items published if limit is specified
@@ -125,7 +125,10 @@ sub publish_feed_items {
                 my $content = $update->{'hashtags'};
 
 		if( $params{'embed_image'} and length $update->{'image'} ){
-			$content = '![](' . $update->{'image'} . ")\n$content";
+			my $image_link = '![](' . $update->{'image'};
+			$image_link .= ' "' . $update->{'image_title'} . '"' if length $update->{'image_title'};
+			$image_link .= ')';
+			$content = "$image_link\n$content";
 		}
 
                 # to hyperlink the title or not to hyperlink the title...
@@ -176,7 +179,7 @@ sub update_feed {
                 # and if not, insert it
                 unless( defined $row ){
                         $sth = $dbh->prepare(
-                                "INSERT INTO feeds( guid, feed_id, title, link, image, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?)"
+                                "INSERT INTO feeds( guid, feed_id, title, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
                         ) or die "Can't prepare statement: $DBI::errstr";
                         $sth->execute(
                                 $item->{'guid'},
@@ -184,6 +187,7 @@ sub update_feed {
                                 $item->{'title'},
                                 $item->{'link'},
 				$item->{'image'},
+				$item->{'image_title'},
                                 join( ' ', @{$item->{'hashtags'}} ),
                                 0,
                                 time,
@@ -220,6 +224,7 @@ sub get_feed_items {
                 my @hashtags = ();
                 my $guid = undef;
 		my $image = '';
+		my $image_title = '';
 
                 # strip trailing /
                 $link =~ s/\/+$// if defined $link;
@@ -274,10 +279,14 @@ sub get_feed_items {
                         push ( @hashtags, @categories );
                 }
 
-		# extract image link if it exists
+		# extract image link and hover text if it exists
 		if( defined $item->{'description'} ){
-			$item->{'description'} =~ /src=('|")(https?:\/\/[^'|"]+)/;
-			$image = $2 if defined $2;
+			if( $item->{'description'} =~ / src="(https?:\/\/[^"]+)/ ){
+				$image = $2 if defined $2;
+					if( $item->{'description'} =~ / title="([^"]+)/ ){
+						$image_title = $1 if defined $1;
+				}
+			}
 		}
 
                 @hashtags = sort @hashtags;
@@ -300,6 +309,7 @@ sub get_feed_items {
                         title           => $item->{'title'},
                         link            => $link,
 			image		=> $image,
+			image_title	=> $image_title,
                         hashtags        => hashtagify( \@hashtags ),
                 };
 
@@ -520,7 +530,7 @@ sub init_database {
         unless( -e $db_file ){
                 my $dbh = connect_to_db( $db_file );
                 my $sth = $dbh->prepare(
-                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),image_title VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
                 ) or die "Can't prepare statement: $DBI::errstr";
 
                 $sth->execute() or die "Can't execute statement: $DBI::errstr";
