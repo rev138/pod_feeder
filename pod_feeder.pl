@@ -279,7 +279,7 @@ sub get_feed_items {
                         push ( @hashtags, @categories );
                 }
 
-		# extract image link and hover text if it exists
+		# extract image link and hover text from description if it exists
 		if( defined $item->{'description'} ){
 			$item->{'description'} =~ / src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ / src="(https?:\/\/[^"]+)/;
 
@@ -288,6 +288,11 @@ sub get_feed_items {
 				$item->{'description'} =~ / title='([^']+)/ unless $item->{'description'} =~ / title="([^"]+)/;
 				$image_title = $1 if defined $1;
 			}
+		}
+
+		# extract the image link from the enclosure tag if it exists
+		if( not length $image and defined $item->{'enclosure'} and defined $item->{'enclosure'}->{'type'} and $item->{'enclosure'}->{'type'} =~ /^image\// ){
+			$image = $item->{'enclosure'}->{'url'} if defined $item->{'enclosure'}->{'url'};
 		}
 
                 @hashtags = sort @hashtags;
