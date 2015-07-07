@@ -281,11 +281,12 @@ sub get_feed_items {
 
 		# extract image link and hover text if it exists
 		if( defined $item->{'description'} ){
-			if( $item->{'description'} =~ / src="(https?:\/\/[^"]+)/ ){
-				$image = $1 if defined $1;
-					if( $item->{'description'} =~ / title="([^"]+)/ ){
-						$image_title = $1 if defined $1;
-				}
+			$item->{'description'} =~ / src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ / src="(https?:\/\/[^"]+)/;
+
+			if( defined $1 ){
+				$image = $1;
+				$item->{'description'} =~ / title='([^']+)/ unless $item->{'description'} =~ / title="([^"]+)/;
+				$image_title = $1 if defined $1;
 			}
 		}
 
@@ -356,6 +357,7 @@ sub decode_feed{
                         }
 
                         $item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
+			$item->{'description'} = $entries->{$guid}->{'summary'}->{'content'} if defined $entries->{$guid}->{'summary'} and defined $entries->{$guid}->{'summary'}->{'content'};
 
                         push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
                 }
