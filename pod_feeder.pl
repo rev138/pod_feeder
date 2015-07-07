@@ -125,9 +125,9 @@ sub publish_feed_items {
                 my $content = $update->{'hashtags'};
 
 		if( $params{'embed_image'} and length $update->{'image'} ){
-			my $image_link = '![](' . $update->{'image'};
+			my $image_link = '[![](' . $update->{'image'};
 			$image_link .= ' "' . $update->{'image_title'} . '"' if length $update->{'image_title'};
-			$image_link .= ')';
+			$image_link .= ')](' . $update->{'link'} . ')';
 			$content = "$image_link\n$content";
 		}
 
