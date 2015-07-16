@@ -32,6 +32,7 @@ This script is intended to be run as a cron job, which might look something like
     -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed
     -l   --pod-url <https://...>         The pod URL
     -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default 72)
+    -n   --ignore-tag <#hashtag>         Hashtags to filter out. May be specified multiple times (default: none)
     -o   --fetch-only                    Don't publish to Diaspora, just queue the new feed items for later
     -p   --password <********>           The D* user password
     -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)

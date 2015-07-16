@@ -30,6 +30,7 @@ my $opts = {
         'timeout'               => 72,  # hours
 };
 my @auto_tags = ();
+my @ignored_tags = ();
 my @aspect_ids = ();
 
 GetOptions(
@@ -43,6 +44,7 @@ GetOptions(
         'feed-url|f=s',
         'fetch-only|o',
         'help|h',               => \&usage,
+	'ignore-tag|n=s',	=> \@ignored_tags,
         'limit|x=i',
         'password|p=s',
         'pod-url|l=s',
@@ -75,6 +77,7 @@ if( $fetched ){
                         db_file                 => $opts->{'database'},
                         feed_id                 => $opts->{'feed-id'},
                         auto_tags               => hashtagify( \@auto_tags ),
+			ignored_tags		=> hashtagify( \@ignored_tags ),
                         extract_tags_from_url   => $opts->{'url-tags'},
                         extract_tags_from_title => $opts->{'title-tags'},
                         tag_categories          => $opts->{'category-tags'},
@@ -163,9 +166,10 @@ sub publish_feed_items {
 sub update_feed {
         my ( $feed, %params ) = @_;
 
-        $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
+        $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
+	$params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         my $items = get_feed_items( $feed, %params );
         my $dbh = connect_to_db( $params{'db_file'} );
@@ -211,9 +215,10 @@ sub get_feed_items {
         my @items = ();
         my $list = decode_feed( $feed );
 
-        $params{'auto_tags'} = 0 unless defined $params{'auto_tags'};
+        $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
+	$params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
@@ -310,13 +315,22 @@ sub get_feed_items {
                 }
                 else { $guid = $link }
 
+		@hashtags = @{ hashtagify( \@hashtags ) };
+
+		# filter out ignored tags
+		for( my $t = 0; $t < @hashtags; $t++ ){
+			foreach my $ignored ( @{$params{'ignored_tags'}} ){
+				splice( @hashtags, $t, 1 ) if $hashtags[$t] eq $ignored;
+			}
+		}
+
                 my $obj = {
                         guid            => $guid,
                         title           => $item->{'title'},
                         link            => $link,
 			image		=> $image,
 			image_title	=> $image_title,
-                        hashtags        => hashtagify( \@hashtags ),
+                        hashtags        => \@hashtags,
                 };
 
                 $items[@items] = $obj;
@@ -564,6 +578,7 @@ sub usage {
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
         print "    -l   --pod-url <https://...>         The pod URL\n";
         print "    -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default 72)\n";
+        print "    -n   --ignore-tag <#hashtag>         Hashtags to filter out. May be specified multiple times (default: none)\n";
         print "    -o   --fetch-only                    Don't publish to Diaspora, just queue the new feed items for later\n";
         print "    -p   --password <********>           The D* user password\n";
         print "    -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)\n";
