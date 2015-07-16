@@ -322,7 +322,13 @@ sub get_feed_items {
                 $items[@items] = $obj;
         }
 
-        return \@items;
+	# the last shall be first and the first shall be last
+	my @reversed = ();
+	for( my $i = $#items; $i >= 0; $i-- ){
+		$reversed[@reversed] = $items[$i];
+	}
+
+        return \@reversed;
 }
 
 # extract the data we need based on feed type (RSS v. Atom)
