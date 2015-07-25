@@ -284,8 +284,19 @@ sub get_feed_items {
                         push ( @hashtags, @categories );
                 }
 
+		# extract image link and hover text from content:encoded if it exists
+		if( defined $item->{'content:encoded'} ){
+			$item->{'content:encoded'} =~ / src=\\?'(https?:\/\/[^']+)/ unless $item->{'content:encoded'} =~ / src=\\?"(https?:\/\/[^"]+)/;
+
+			if( defined $1 ){
+				$image = $1;
+				$item->{'content:encoded'} =~ / title='([^']+)/ unless $item->{'content:encoded'} =~ / title="([^"]+)/;
+				$image_title = $1 if defined $1;
+			}
+		}
+
 		# extract image link and hover text from description if it exists
-		if( defined $item->{'description'} ){
+		if( not length $image and defined $item->{'description'} ){
 			$item->{'description'} =~ / src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ / src="(https?:\/\/[^"]+)/;
 
 			if( defined $1 ){
