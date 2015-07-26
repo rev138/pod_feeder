@@ -286,7 +286,7 @@ sub get_feed_items {
 
 		# extract image link and hover text from content:encoded if it exists
 		if( defined $item->{'content:encoded'} ){
-			$item->{'content:encoded'} =~ / src=\\?'(https?:\/\/[^']+)/ unless $item->{'content:encoded'} =~ / src=\\?"(https?:\/\/[^"]+)/;
+			$item->{'content:encoded'} =~ /img src=\\?'(https?:\/\/[^']+)/ unless $item->{'content:encoded'} =~ /img src=\\?"(https?:\/\/[^"]+)/;
 
 			if( defined $1 ){
 				$image = $1;
@@ -297,7 +297,7 @@ sub get_feed_items {
 
 		# extract image link and hover text from description if it exists
 		if( not length $image and defined $item->{'description'} ){
-			$item->{'description'} =~ / src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ / src="(https?:\/\/[^"]+)/;
+			$item->{'description'} =~ /img src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ /img src="(https?:\/\/[^"]+)/;
 
 			if( defined $1 ){
 				$image = $1;
