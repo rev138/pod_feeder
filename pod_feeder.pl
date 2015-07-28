@@ -311,6 +311,9 @@ sub get_feed_items {
 			$image = $item->{'enclosure'}->{'url'} if defined $item->{'enclosure'}->{'url'};
 		}
 
+		# remove any query params from image link
+		$image =~ s/(\?.*)$//;
+
                 @hashtags = sort @hashtags;
 
                 if( defined $item->{'guid'} ){
