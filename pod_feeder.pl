@@ -175,6 +175,10 @@ sub update_feed {
         my $dbh = connect_to_db( $params{'db_file'} );
 
         foreach my $item ( @$items ){
+		# strip junk
+		map { $item->{$_} =~ s/^\s+|\s+$//g } keys %$item;
+		map { $item->{$_} =~ s/^\n+|\n+$//g } keys %$item;
+
                 # check to see if it exists already
                 my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
                 $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
