@@ -437,8 +437,9 @@ sub hashtagify {
                 $item =~ s/[^(\p{Letter}|\p{Number})]//g;
 
                 # drop stop words
+		# TODO : make these overridable
                 next if length( $item ) < 3;
-                next if lc( $item ) =~ m/^(and|are|but|for|from|how|its|the|this)$/;
+                next if lc( $item ) =~ m/^(and|are|but|can|for|from|had|her|his|have|how|its|that|the|their|they|theyre|this|was|what|when|you)$/;
                 # hashtagify it
                 $item = '#' . $item;
                 # use a hash here instead of an ordered list for auto-dedupe
