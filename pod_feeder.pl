@@ -28,6 +28,7 @@ my $opts = {
         'database'              => './pod_feeder.db',
         'limit'                 => 0,
         'timeout'               => 72,  # hours
+	'via'			=> 'pod_feeder',
 };
 my @auto_tags = ();
 my @ignored_tags = ();
@@ -46,6 +47,7 @@ GetOptions(
         'help|h',               => \&usage,
 	'ignore-tag|n=s',	=> \@ignored_tags,
         'limit|x=i',
+	'no-branding',
         'password|p=s',
         'pod-url|l=s',
         'post-raw-links|w',
@@ -54,6 +56,7 @@ GetOptions(
         'url-tags|r',
         'user-agent|g=s',
         'username|u=s',
+	'via|v=s',
 );
 
 # defaults to 'public' if no aspect ids are specified
@@ -98,6 +101,8 @@ if( $fetched ){
                         aspect_ids      => \@aspect_ids,
                         raw_link        => $opts->{'post-raw-links'},
                         limit           => $opts->{'limit'},
+			no_branding	=> $opts->{'no-branding'},
+			via		=> $opts->{'via'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -468,7 +473,7 @@ sub publish_post {
 
         # if we've logged in successfully, post the message
         if( $login_response->is_success ){
-                my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'} );
+                my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'}, %params );
                 #logout( $ua, $pod_url );
                 return $post;
         }
@@ -540,23 +545,23 @@ sub extract_token {
 
 # make any necessary string manipulations to play nice with markdown
 sub format_content {
-        my ( $content ) = @_;
+        my ( $content, %params ) = @_;
 
         $content =~ s/\n/\n\n/g;
-        $content .= "\nposted by [pod_feeder](https://github.com/rev138/pod_feeder)";
+        $content .= "\nposted by [pod_feeder](https://github.com/rev138/pod_feeder)" unless( $params{'no_branding'} );
 
         return $content;
 }
 
 # post a message
 sub post_message {
-        my ( $ua, $base_url, $content, $aspect_ids ) = @_;
+        my ( $ua, $base_url, $content, $aspect_ids, %params ) = @_;
         my ( $get_stream, $result ) = get_page( $ua, "$base_url/stream" );
 
         if( $get_stream ){
                 my $csrf = extract_token( $result );
                 my $post_url = "$base_url/status_messages";
-                my $message = { status_message => { text => format_content( $content ),  provider_display_name => 'pod_feeder' }, aspect_ids => $aspect_ids };
+                my $message = { status_message => { text => format_content( $content, %params ),  provider_display_name => $params{'via'} }, aspect_ids => $aspect_ids };
                 my $json = JSON->new->allow_nonref;
 
                 $json = $json->utf8(0) unless utf8::is_utf8( $message );
@@ -588,13 +593,14 @@ sub usage {
         print "$0\n";
         print "usage:\n";
         print "    -a   --aspect-id <id>                Aspects to share with. May specify multiple times (default: 'public')\n";
-	print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
+        print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
         print "    -e    --title-tags                   Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
+        print "    -j   --no-branding                   Do not include 'posted via pod_feeder' footer to posts\n";
         print "    -l   --pod-url <https://...>         The pod URL\n";
         print "    -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default 72)\n";
         print "    -n   --ignore-tag <#hashtag>         Hashtags to filter out. May be specified multiple times (default: none)\n";
@@ -603,8 +609,9 @@ sub usage {
         print "    -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)\n";
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
         print "    -u   --username <user>               The D* login username\n";
+        print "    -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
-        print "    -x    --limit <n>                    Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "    -x   --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)\n";
         print "\n";
 
         exit;
