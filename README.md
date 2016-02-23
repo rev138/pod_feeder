@@ -30,6 +30,7 @@ This script is intended to be run as a cron job, which might look something like
     -f   --feed-url <http://...>         The feed URL
     -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')
     -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed
+    -j   --no-branding                   Do not include 'posted via pod_feeder' footer to posts
     -l   --pod-url <https://...>         The pod URL
     -m   --timeout <hours>               How long (in hours) to keep attempting failed posts (default 72)
     -n   --ignore-tag <#hashtag>         Hashtags to filter out. May be specified multiple times (default: none)
@@ -38,6 +39,7 @@ This script is intended to be run as a cron job, which might look something like
     -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)
     -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)
     -u   --username <user>               The D* login username
+    -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')
     -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)
     -x   --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)
 
