@@ -117,10 +117,10 @@ sub publish_feed_items {
         my @updates = ();
         my $query_string = "SELECT guid, title, link, image, image_title, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
-        
+
         # limit the number of items published if limit is specified
         $query_string .= " LIMIT $params{'limit'}" if $params{'limit'} > 0;
-        
+
         my $sth = $dbh->prepare( $query_string ) or die "Can't prepare statement: $DBI::errstr";
 
         $sth->execute( $params{'feed_id'}, time - ( $params{'timeout'} * 3600 ) ) or die "Can't execute statement: $DBI::errstr";
@@ -405,7 +405,15 @@ sub decode_feed{
                         }
 
                         $item->{'category'} = $entries->{'category'} if defined $entries->{'category'};
-			$item->{'description'} = $entries->{$guid}->{'summary'}->{'content'} if defined $entries->{$guid}->{'summary'} and defined $entries->{$guid}->{'summary'}->{'content'};
+
+                        if( defined $entries->{$guid}->{'summary'} ){
+                                if( ref($entries->{$guid}->{'summary'}) eq 'HASH' and defined $entries->{$guid}->{'summary'}->{'content'} ){
+                                        $item->{'description'} = $entries->{$guid}->{'summary'}->{'content'};
+                                }
+                                else {
+                                        $item->{'description'} = $entries->{$guid}->{'summary'};
+                                }
+                        }
 
                         push( @list,  $item ) if defined $item->{'link'} and defined $item->{'title'};
                 }
