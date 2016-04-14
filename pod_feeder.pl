@@ -28,7 +28,7 @@ my $opts = {
         'database'              => './pod_feeder.db',
         'limit'                 => 0,
         'timeout'               => 72,  # hours
-	    'via'          			=> 'pod_feeder',
+        'via'          			=> 'pod_feeder',
 };
 my @auto_tags = ();
 my @ignored_tags = ();
@@ -227,7 +227,7 @@ sub get_feed_items {
         $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	      $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
+	    $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
