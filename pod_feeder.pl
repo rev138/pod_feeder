@@ -28,7 +28,7 @@ my $opts = {
         'database'              => './pod_feeder.db',
         'limit'                 => 0,
         'timeout'               => 72,  # hours
-	'via'			=> 'pod_feeder',
+	    'via'          			=> 'pod_feeder',
 };
 my @auto_tags = ();
 my @ignored_tags = ();
@@ -40,14 +40,14 @@ GetOptions(
         'auto-tag|t=s'          => \@auto_tags,
         'category-tags|c',
         'database|d=s',
-	'embed-image|b',
+	    'embed-image|b',
         'feed-id|i=s',
         'feed-url|f=s',
         'fetch-only|o',
         'help|h',               => \&usage,
-	'ignore-tag|n=s',	=> \@ignored_tags,
+	    'ignore-tag|n=s',	    => \@ignored_tags,
         'limit|x=i',
-	'no-branding',
+	    'no-branding',
         'password|p=s',
         'pod-url|l=s',
         'post-raw-links|w',
@@ -56,7 +56,7 @@ GetOptions(
         'url-tags|r',
         'user-agent|g=s',
         'username|u=s',
-	'via|v=s',
+        'via|v=s',
 );
 
 # defaults to 'public' if no aspect ids are specified
@@ -80,7 +80,7 @@ if( $fetched ){
                         db_file                 => $opts->{'database'},
                         feed_id                 => $opts->{'feed-id'},
                         auto_tags               => hashtagify( \@auto_tags ),
-			ignored_tags		=> hashtagify( \@ignored_tags ),
+                        ignored_tags            => hashtagify( \@ignored_tags ),
                         extract_tags_from_url   => $opts->{'url-tags'},
                         extract_tags_from_title => $opts->{'title-tags'},
                         tag_categories          => $opts->{'category-tags'},
@@ -92,7 +92,7 @@ if( $fetched ){
                 # publish new feed items to the pod, unless the user specified --fetch-only
                 publish_feed_items(
                         db_file         => $opts->{'database'},
-			embed_image	=> $opts->{'embed-image'},
+                        embed_image     => $opts->{'embed-image'},
                         feed_id         => $opts->{'feed-id'},
                         timeout         => $opts->{'timeout'},
                         pod_url         => $opts->{'pod-url'},
@@ -101,8 +101,8 @@ if( $fetched ){
                         aspect_ids      => \@aspect_ids,
                         raw_link        => $opts->{'post-raw-links'},
                         limit           => $opts->{'limit'},
-			no_branding	=> $opts->{'no-branding'},
-			via		=> $opts->{'via'},
+			            no_branding     => $opts->{'no-branding'},
+			            via		        => $opts->{'via'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -139,32 +139,32 @@ sub publish_feed_items {
 			$content = "$image_link\n$content";
 		}
 
-                # to hyperlink the title or not to hyperlink the title...
-                if( $params{'raw_link'} ){
-                        $content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
-                }
-                else {
-                        $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
-                }
-
-                print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
-
-                my $post = publish_post( $content, %params );
-
-                # mark the item as successfully posted
-                if( $post->is_success ){
-                        $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = ?" ) or die "Can't prepare statement: $DBI::errstr";
-                        $sth->execute( $update->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
-                }
-                else {
-                        warn $post->code . ' ' . $post->message;
-                }
-
-                # Now, don't be hasty, master Meriadoc
-                sleep 1;
+        # to hyperlink the title or not to hyperlink the title...
+        if( $params{'raw_link'} ){
+                $content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
+        }
+        else {
+                $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
         }
 
-        $dbh->disconnect();
+        print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
+
+        my $post = publish_post( $content, %params );
+
+        # mark the item as successfully posted
+        if( $post->is_success ){
+                $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = ?" ) or die "Can't prepare statement: $DBI::errstr";
+                $sth->execute( $update->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
+        }
+        else {
+                warn $post->code . ' ' . $post->message;
+        }
+
+        # Now, don't be hasty, master Meriadoc
+        sleep 1;
+    }
+
+    $dbh->disconnect();
 }
 
 # adds new feed items to the database
@@ -174,7 +174,7 @@ sub update_feed {
         $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	$params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
+	    $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         my $items = get_feed_items( $feed, %params );
         my $dbh = connect_to_db( $params{'db_file'} );
@@ -199,8 +199,8 @@ sub update_feed {
                                 $params{'feed_id'},
                                 $item->{'title'},
                                 $item->{'link'},
-				$item->{'image'},
-				$item->{'image_title'},
+				                $item->{'image'},
+				                $item->{'image_title'},
                                 join( ' ', @{$item->{'hashtags'}} ),
                                 0,
                                 time,
@@ -213,7 +213,7 @@ sub update_feed {
 
 sub connect_to_db {
         my ( $db_file ) = @_;
-        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '', { RaiseError => 1 } ) or die $DBI::errstr;
+        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '', { RaiseError => 1, sqlite_unicode => 1 } ) or die $DBI::errstr;
 
         return $dbh;
 }
@@ -227,7 +227,7 @@ sub get_feed_items {
         $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	$params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
+	      $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
@@ -237,8 +237,8 @@ sub get_feed_items {
 
                 my @hashtags = ();
                 my $guid = undef;
-		my $image = '';
-		my $image_title = '';
+		        my $image = '';
+		        my $image_title = '';
 
                 # strip trailing /
                 $link =~ s/\/+$// if defined $link;
@@ -323,20 +323,20 @@ sub get_feed_items {
 		# remove any query params from image link
 		$image =~ s/(\?.*)$//;
 
-                @hashtags = sort @hashtags;
+        @hashtags = sort @hashtags;
 
-                if( defined $item->{'guid'} ){
-                        if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
-                                $guid = $item->{'guid'}->{'content'};
-                        }
-                        elsif( ref $item->{'guid'} ne 'HASH' ) {
-                                $guid = $item->{'guid'};
-                        }
+        if( defined $item->{'guid'} ){
+                if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
+                        $guid = $item->{'guid'}->{'content'};
                 }
-                elsif( defined $item->{'id'} ){
-                        $guid = $item->{'id'};
+                elsif( ref $item->{'guid'} ne 'HASH' ) {
+                        $guid = $item->{'guid'};
                 }
-                else { $guid = $link }
+        }
+        elsif( defined $item->{'id'} ){
+                $guid = $item->{'id'};
+        }
+        else { $guid = $link }
 
 		@hashtags = @{ hashtagify( \@hashtags ) };
 
@@ -347,17 +347,17 @@ sub get_feed_items {
 			}
 		}
 
-                my $obj = {
-                        guid            => $guid,
-                        title           => $item->{'title'},
-                        link            => $link,
-			image		=> $image,
-			image_title	=> $image_title,
-                        hashtags        => \@hashtags,
-                };
+        my $obj = {
+                guid            => $guid,
+                title           => $item->{'title'},
+                link            => $link,
+			    image		=> $image,
+			    image_title	=> $image_title,
+                hashtags        => \@hashtags,
+        };
 
-                $items[@items] = $obj;
-        }
+        $items[@items] = $obj;
+    }
 
 	# the last shall be first and the first shall be last
 	my @reversed = ();
@@ -365,7 +365,7 @@ sub get_feed_items {
 		$reversed[@reversed] = $items[$i];
 	}
 
-        return \@reversed;
+    return \@reversed;
 }
 
 # extract the data we need based on feed type (RSS v. Atom)
