@@ -184,29 +184,32 @@ sub update_feed {
 		map { $item->{$_} =~ s/^\s+|\s+$//g } keys %$item;
 		map { $item->{$_} =~ s/^\n+|\n+$//g } keys %$item;
 
-                # check to see if it exists already
-                my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
-                $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
-                my $row = $sth->fetch();
+        # decode uft8 strings before storing in the db
+        map { utf8::decode($item->{'title'}) } keys %$item;
 
-                # and if not, insert it
-                unless( defined $row ){
-                        $sth = $dbh->prepare(
-                                "INSERT INTO feeds( guid, feed_id, title, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
-                        ) or die "Can't prepare statement: $DBI::errstr";
-                        $sth->execute(
-                                $item->{'guid'},
-                                $params{'feed_id'},
-                                $item->{'title'},
-                                $item->{'link'},
-				                $item->{'image'},
-				                $item->{'image_title'},
-                                join( ' ', @{$item->{'hashtags'}} ),
-                                0,
-                                time,
-                        ) or die "Can't execute statement: $DBI::errstr";
-                }
+        # check to see if it exists already
+        my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
+        $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
+        my $row = $sth->fetch();
+
+        # and if not, insert it
+        unless( defined $row ){
+                $sth = $dbh->prepare(
+                        "INSERT INTO feeds( guid, feed_id, title, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+                ) or die "Can't prepare statement: $DBI::errstr";
+                $sth->execute(
+                        $item->{'guid'},
+                        $params{'feed_id'},
+                        $item->{'title'},
+                        $item->{'link'},
+		                $item->{'image'},
+		                $item->{'image_title'},
+                        join( ' ', @{$item->{'hashtags'}} ),
+                        0,
+                        time,
+                ) or die "Can't execute statement: $DBI::errstr";
         }
+    }
 
         $dbh->disconnect();
 }
