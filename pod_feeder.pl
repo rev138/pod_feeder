@@ -481,6 +481,9 @@ sub publish_post {
 
         # if we've logged in successfully, post the message
         if( $login_response->is_success ){
+                # encode utf-8 characters
+                utf8::encode($content);
+
                 my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'}, %params );
                 #logout( $ua, $pod_url );
                 return $post;
