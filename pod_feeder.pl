@@ -377,8 +377,13 @@ sub decode_feed{
         my @list = ();
 
         # RSS
-        if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} and ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
+        if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} ){
+            if( ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
                 @list = @{$feed->{'channel'}->{'item'}};
+            }
+            elsif( ref $feed->{'channel'}->{'item'} eq 'HASH' ){
+                @list = values %{$feed->{'channel'}->{'item'}};
+            }
         }
         # Atom
         elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
