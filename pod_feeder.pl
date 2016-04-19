@@ -461,7 +461,6 @@ sub hashtagify {
 		# TODO : make these overridable
                 next if length( $item ) < 3;
                 next if lc( $item ) =~ m/^(a(lso|nd|ny|re)|been|but|can(not|t)?|e(ach|tc|very)|for|from|g(e|o)t|ha(d|ve)|has(nt)?|hers?|hi(m|s)|how|its|no(r|t)|ours?|she|some|th(an|at|em?|eirs?|(e|o)se|ey|eyre|is)|too|very|was|wh(at|en|o)|with|you(r|rs)?)$/;
-                print "$item\n";
                 # hashtagify it
                 $item = '#' . $item;
                 # use a hash here instead of an ordered list for auto-dedupe
