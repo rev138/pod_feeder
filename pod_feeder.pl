@@ -382,7 +382,20 @@ sub decode_feed{
                 @list = @{$feed->{'channel'}->{'item'}};
             }
             elsif( ref $feed->{'channel'}->{'item'} eq 'HASH' ){
-                @list = values %{$feed->{'channel'}->{'item'}};
+                if( length( keys %{$feed->{'channel'}->{'item'}} ) == 1 ){
+                    $list[@list] = $feed->{'channel'}->{'item'}
+                }
+                else{
+                    @list = values %{$feed->{'channel'}->{'item'}};
+                }
+            }
+        }
+        elsif( defined $feed->{'item'} ){
+            if( ref $feed->{'item'} eq 'ARRAY' ){
+                @list = @{$feed->{'item'}};
+            }
+            elsif( ref $feed->{'item'} eq 'HASH' ){
+                @list = values %{$feed->{'item'}};
             }
         }
         # Atom
@@ -458,7 +471,7 @@ sub hashtagify {
                 $item =~ s/[^(\p{Letter}|\p{Number})]//g;
 
                 # drop stop words
-		# TODO : make these overridable
+                # TODO : make these overridable
                 next if length( $item ) < 3;
                 next if lc( $item ) =~ m/^(a(lso|nd|ny|re)|been|but|can(not|t)?|e(ach|tc|very)|for|from|g(e|o)t|ha(d|ve)|has(nt)?|hers?|hi(m|s)|how|its|no(r|t)|ours?|she|some|th(an|at|em?|eirs?|(e|o)se|ey|eyre|is)|too|very|was|wh(at|en|o)|with|you(r|rs)?)$/;
                 # hashtagify it
