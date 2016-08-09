@@ -24,6 +24,9 @@ use DBI;
 use Unicode::Normalize 'normalize';
 use Getopt::Long;
 
+## Fix for 500 error to pod url 
+$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
+
 my $opts = {
         'database'              => './pod_feeder.db',
         'limit'                 => 0,
