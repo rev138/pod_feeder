@@ -24,14 +24,12 @@ use DBI;
 use Unicode::Normalize 'normalize';
 use Getopt::Long;
 
-## Fix for 500 error to pod url 
-$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-
 my $opts = {
-        'database'              => './pod_feeder.db',
-        'limit'                 => 0,
-        'timeout'               => 72,  # hours
-        'via'          			=> 'pod_feeder',
+        'database'             	=> './pod_feeder.db',
+        'limit'                	=> 0,
+        'timeout'              	=> 72,  # hours
+        'via'          		=> 'pod_feeder',
+	'insecure'              => 'no',
 };
 my @auto_tags = ();
 my @ignored_tags = ();
@@ -43,14 +41,14 @@ GetOptions(
         'auto-tag|t=s'          => \@auto_tags,
         'category-tags|c',
         'database|d=s',
-	    'embed-image|b',
+	'embed-image|b',
         'feed-id|i=s',
         'feed-url|f=s',
         'fetch-only|o',
-        'help|h',               => \&usage,
-	    'ignore-tag|n=s',	    => \@ignored_tags,
+        'help|h',             	=> \&usage,
+	'ignore-tag|n=s',	=> \@ignored_tags,
         'limit|x=i',
-	    'no-branding',
+	'no-branding',
         'password|p=s',
         'pod-url|l=s',
         'post-raw-links|w',
@@ -60,6 +58,7 @@ GetOptions(
         'user-agent|g=s',
         'username|u=s',
         'via|v=s',
+	'insecure|s=s',
 );
 
 # defaults to 'public' if no aspect ids are specified
@@ -499,6 +498,17 @@ sub publish_post {
 
         # initialize an empty cookie jar
         $ua->cookie_jar( {} );
+# allow option for insecure certs
+#
+        my $insecure_certs = $opts->{'insecure'};
+            if     ($insecure_certs eq 'yes'){
+                    $ua->ssl_opts( verify_hostname  => 0);
+
+                }  
+            else{  
+                    $ua->ssl_opts( verify_hostname  => 1);
+                }
+
 
         # log in
         my $login_response = login( $ua, $params{'pod_url'}, $params{'username'}, $params{'password'} ) ;
@@ -643,6 +653,7 @@ sub usage {
         print "    -p   --password <********>           The D* user password\n";
         print "    -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)\n";
         print "    -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)\n";
+	print "    -s   --insecure <yes>		Allows the option to bypass any errors caused from self-signed certificates(default: no)\n";
         print "    -u   --username <user>               The D* login username\n";
         print "    -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
