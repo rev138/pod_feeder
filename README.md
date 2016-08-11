@@ -38,7 +38,7 @@ This script is intended to be run as a cron job, which might look something like
     -p   --password <********>           The D* user password
     -r   --url-tags                      Attempt to automatically hashtagify the RSS link URL (default: off)
     -t   --auto-tag <#hashtag>           Hashtags to add to all posts. May be specified multiple times (default: none)
-    -s   --insecure <yes>                Allows the option to bypass any errors caused from self-signed certificates(default: no)
+    -s   --insecure                      Allows the option to bypass any errors caused from self-signed certificates(default: off)
     -u   --username <user>               The D* login username
     -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')
     -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)
