@@ -104,6 +104,7 @@ if( $fetched ){
                         limit           => $opts->{'limit'},
 			            no_branding     => $opts->{'no-branding'},
 			            via		        => $opts->{'via'},
+                        insecure        => $opts->{'insecure'},
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -497,17 +498,11 @@ sub publish_post {
 
         # initialize an empty cookie jar
         $ua->cookie_jar( {} );
-# allow option for insecure certs
-#
-        my $insecure_certs = $opts->{'insecure'};
-            if     ($insecure_certs eq 'yes'){
-                    $ua->ssl_opts( verify_hostname  => 0);
 
-                }
-            else{
-                    $ua->ssl_opts( verify_hostname  => 1);
-                }
-
+        # allow option for insecure certs
+        if     ($params{'insecure'}){
+                $ua->ssl_opts( verify_hostname  => 0);
+        }
 
         # log in
         my $login_response = login( $ua, $params{'pod_url'}, $params{'username'}, $params{'password'} ) ;
