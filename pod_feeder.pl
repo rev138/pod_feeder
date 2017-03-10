@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# vim:set sw=8 ts=8 sts=8 ft=perl expandtab:
 
 ##
 ## pod_feeder.pl
