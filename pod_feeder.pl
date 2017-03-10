@@ -24,6 +24,7 @@ use XML::Simple;
 use DBI;
 use Unicode::Normalize 'normalize';
 use Getopt::Long;
+use HTML::FormatMarkdown;
 
 my $opts = {
         'database' => './pod_feeder.db',
@@ -107,6 +108,7 @@ if( $fetched ){
                         no_branding => $opts->{'no-branding'},
                         via         => $opts->{'via'},
                         insecure    => $opts->{'insecure'},
+                        body        => $opts->{'body'}
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -119,7 +121,7 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-        my $query_string = "SELECT guid, title, link, image, image_title, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
+        my $query_string = "SELECT guid, title, link, image, image_title, hashtags, body FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
 
         # limit the number of items published if limit is specified
@@ -150,6 +152,8 @@ sub publish_feed_items {
                 else {
                         $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
                 }
+
+                $content .= "\n" . $update->{'body'} if $params{'body'};
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
 
@@ -190,6 +194,7 @@ sub update_feed {
 
                 # decode uft8 strings before storing in the db
                 map { utf8::decode($item->{'title'}) } keys %$item;
+                map { utf8::decode($item->{'body'}) } keys %$item;
 
                 # check to see if it exists already
                 my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
@@ -199,12 +204,13 @@ sub update_feed {
                 # and if not, insert it
                 unless( defined $row ){
                         $sth = $dbh->prepare(
-                                "INSERT INTO feeds( guid, feed_id, title, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+                                "INSERT INTO feeds( guid, feed_id, title, body, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
                         ) or die "Can't prepare statement: $DBI::errstr";
                         $sth->execute(
                                 $item->{'guid'},
                                 $params{'feed_id'},
                                 $item->{'title'},
+                                $item->{'body'},
                                 $item->{'link'},
                                 $item->{'image'},
                                 $item->{'image_title'},
@@ -354,9 +360,13 @@ sub get_feed_items {
                         }
                 }
 
+                my $body = HTML::FormatMarkdown->format_from_string($item->{'description'}, rm => 100000);
+                $body    = HTML::FormatMarkdown->format_from_string($item->{'content:encoded'}, rm => 100000) if ($item->{'content:encoded'});
+
                 my $obj = {
                         guid        => $guid,
                         title       => $item->{'title'},
+                        body        => $body,
                         link        => $link,
                         image       => $image,
                         image_title => $image_title,
@@ -619,13 +629,25 @@ sub post_message {
 sub init_database {
         my ( $db_file ) = @_;
 
+        my $dbh = connect_to_db( $db_file );
         unless( -e $db_file ){
-                my $dbh = connect_to_db( $db_file );
                 my $sth = $dbh->prepare(
-                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),image_title VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),image_title VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1),body VARCHAR(10000))'
                 ) or die "Can't prepare statement: $DBI::errstr";
 
                 $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                $dbh->disconnect();
+        }
+        else {
+                my $sth = $dbh->column_info(undef, undef, 'feeds', undef);
+                my $body_exists = 0;
+                while( my( $tcat, $tscheme, $tname, $column_name ) = $sth->fetchrow_array() ) {
+                        $body_exists = 1 if $column_name eq 'body';
+                }
+                unless( $body_exists ) {
+                        $sth = $dbh->prepare('ALTER TABLE feeds ADD body VARCHAR(10000)');
+                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                }
                 $dbh->disconnect();
         }
 }
@@ -637,7 +659,7 @@ sub usage {
         print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e    --title-tags                   Automatically hashtagify RSS item title\n";
+        print "    -e   --title-tags                   Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
@@ -654,6 +676,7 @@ sub usage {
         print "    -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
         print "    -x   --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "         --body                          Post the body of the feed (description or content:encoded item)\n";
         print "\n";
 
         exit;

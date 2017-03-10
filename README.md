@@ -15,6 +15,7 @@ This is a lightweight, customizable "bot" script to harvest RSS/Atom feeds and r
 - DBD::SQLite
 - Unicode::Normalize
 - Getopt::Long
+- HTML::FormatMarkdown
 
 This script is intended to be run as a cron job, which might look something like this:
 
