@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# vim:set sw=8 ts=8 sts=8 ft=perl expandtab:
 
 ##
 ## pod_feeder.pl
@@ -23,12 +24,13 @@ use XML::Simple;
 use DBI;
 use Unicode::Normalize 'normalize';
 use Getopt::Long;
+use HTML::FormatMarkdown;
 
 my $opts = {
-        'database'             	=> './pod_feeder.db',
-        'limit'                	=> 0,
-        'timeout'              	=> 72,  # hours
-        'via'                   => 'pod_feeder',
+        'database' => './pod_feeder.db',
+        'limit'    => 0,
+        'timeout'  => 72,  # hours
+        'via'      => 'pod_feeder',
 };
 my @auto_tags = ();
 my @ignored_tags = ();
@@ -36,16 +38,17 @@ my @aspect_ids = ();
 
 GetOptions(
         $opts,
-        'aspect-id|a=s'         => \@aspect_ids,
-        'auto-tag|t=s'          => \@auto_tags,
+        'aspect-id|a=s'     => \@aspect_ids,
+        'auto-tag|t=s'      => \@auto_tags,
+        'body',
         'category-tags|c',
         'database|d=s',
         'embed-image|b',
         'feed-id|i=s',
         'feed-url|f=s',
         'fetch-only|o',
-        'help|h',             	=> \&usage,
-        'ignore-tag|n=s',       => \@ignored_tags,
+        'help|h',           => \&usage,
+        'ignore-tag|n=s',   => \@ignored_tags,
         'insecure|s=s',
         'limit|x=i',
         'no-branding',
@@ -92,19 +95,20 @@ if( $fetched ){
         eval {
                 # publish new feed items to the pod, unless the user specified --fetch-only
                 publish_feed_items(
-                        db_file         => $opts->{'database'},
-                        embed_image     => $opts->{'embed-image'},
-                        feed_id         => $opts->{'feed-id'},
-                        timeout         => $opts->{'timeout'},
-                        pod_url         => $opts->{'pod-url'},
-                        username        => $opts->{'username'},
-                        password        => $opts->{'password'},
-                        aspect_ids      => \@aspect_ids,
-                        raw_link        => $opts->{'post-raw-links'},
-                        limit           => $opts->{'limit'},
-			            no_branding     => $opts->{'no-branding'},
-			            via		        => $opts->{'via'},
-                        insecure        => $opts->{'insecure'},
+                        db_file     => $opts->{'database'},
+                        embed_image => $opts->{'embed-image'},
+                        feed_id     => $opts->{'feed-id'},
+                        timeout     => $opts->{'timeout'},
+                        pod_url     => $opts->{'pod-url'},
+                        username    => $opts->{'username'},
+                        password    => $opts->{'password'},
+                        aspect_ids  => \@aspect_ids,
+                        raw_link    => $opts->{'post-raw-links'},
+                        limit       => $opts->{'limit'},
+                        no_branding => $opts->{'no-branding'},
+                        via         => $opts->{'via'},
+                        insecure    => $opts->{'insecure'},
+                        body        => $opts->{'body'}
                 ) unless $opts->{'fetch-only'};
         };
         warn "$@" if $@;
@@ -117,7 +121,7 @@ else {
 sub publish_feed_items {
         my ( %params ) = @_;
         my @updates = ();
-        my $query_string = "SELECT guid, title, link, image, image_title, hashtags FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
+        my $query_string = "SELECT guid, title, link, image, image_title, hashtags, body FROM feeds WHERE feed_id == ? AND posted == 0 AND timestamp > ? ORDER BY timestamp";
         my $dbh = connect_to_db( $params{'db_file'} );
 
         # limit the number of items published if limit is specified
@@ -134,39 +138,41 @@ sub publish_feed_items {
         foreach my $update ( @updates ){
                 my $content = $update->{'hashtags'};
 
-		if( $params{'embed_image'} and length $update->{'image'} ){
-			my $image_link = '[![](' . $update->{'image'};
-			$image_link .= ' "' . $update->{'image_title'} . '"' if length $update->{'image_title'};
-			$image_link .= ')](' . $update->{'link'} . ')';
-			$content = "$image_link\n$content";
-		}
+                if( $params{'embed_image'} and length $update->{'image'} ){
+                    my $image_link = '[![](' . $update->{'image'};
+                    $image_link .= ' "' . $update->{'image_title'} . '"' if length $update->{'image_title'};
+                    $image_link .= ')](' . $update->{'link'} . ')';
+                    $content = "$image_link\n$content";
+                }
 
-        # to hyperlink the title or not to hyperlink the title...
-        if( $params{'raw_link'} ){
-                $content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
+                # to hyperlink the title or not to hyperlink the title...
+                if( $params{'raw_link'} ){
+                        $content = '### ' . $update->{'title'} . "\n\n" . $update->{'link'} . "\n" . $content;
+                }
+                else {
+                        $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
+                }
+
+                $content .= "\n" . $update->{'body'} if $params{'body'};
+
+                print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
+
+                my $post = publish_post( $content, %params );
+
+                # mark the item as successfully posted
+                if( $post->is_success ){
+                        $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = ?" ) or die "Can't prepare statement: $DBI::errstr";
+                        $sth->execute( $update->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
+                }
+                else {
+                        warn $post->code . ' ' . $post->message;
+                }
+
+                # Now, don't be hasty, master Meriadoc
+                sleep 1;
         }
-        else {
-                $content = '### [' . $update->{'title'} . '](' . $update->{'link'} . ")\n\n" . $content;
-        }
 
-        print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
-
-        my $post = publish_post( $content, %params );
-
-        # mark the item as successfully posted
-        if( $post->is_success ){
-                $sth = $dbh->prepare( "UPDATE feeds SET posted = 1 WHERE guid = ?" ) or die "Can't prepare statement: $DBI::errstr";
-                $sth->execute( $update->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
-        }
-        else {
-                warn $post->code . ' ' . $post->message;
-        }
-
-        # Now, don't be hasty, master Meriadoc
-        sleep 1;
-    }
-
-    $dbh->disconnect();
+        $dbh->disconnect();
 }
 
 # adds new feed items to the database
@@ -176,42 +182,44 @@ sub update_feed {
         $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	    $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
+        $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         my $items = get_feed_items( $feed, %params );
         my $dbh = connect_to_db( $params{'db_file'} );
 
         foreach my $item ( @$items ){
-		# strip junk
-		map { $item->{$_} =~ s/^\s+|\s+$//g } keys %$item;
-		map { $item->{$_} =~ s/^\n+|\n+$//g } keys %$item;
+                # strip junk
+                map { $item->{$_} =~ s/^\s+|\s+$//g } keys %$item;
+                map { $item->{$_} =~ s/^\n+|\n+$//g } keys %$item;
 
-        # decode uft8 strings before storing in the db
-        map { utf8::decode($item->{'title'}) } keys %$item;
+                # decode uft8 strings before storing in the db
+                map { utf8::decode($item->{'title'}) } keys %$item;
+                map { utf8::decode($item->{'body'}) } keys %$item;
 
-        # check to see if it exists already
-        my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
-        $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
-        my $row = $sth->fetch();
+                # check to see if it exists already
+                my $sth = $dbh->prepare("SELECT guid FROM feeds WHERE guid == ? LIMIT 1") or die "Can't prepare statement: $DBI::errstr";
+                $sth->execute( $item->{'guid'} ) or die "Can't execute statement: $DBI::errstr";
+                my $row = $sth->fetch();
 
-        # and if not, insert it
-        unless( defined $row ){
-                $sth = $dbh->prepare(
-                        "INSERT INTO feeds( guid, feed_id, title, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
-                ) or die "Can't prepare statement: $DBI::errstr";
-                $sth->execute(
-                        $item->{'guid'},
-                        $params{'feed_id'},
-                        $item->{'title'},
-                        $item->{'link'},
-		                $item->{'image'},
-		                $item->{'image_title'},
-                        join( ' ', @{$item->{'hashtags'}} ),
-                        0,
-                        time,
-                ) or die "Can't execute statement: $DBI::errstr";
+                # and if not, insert it
+                unless( defined $row ){
+                        $sth = $dbh->prepare(
+                                "INSERT INTO feeds( guid, feed_id, title, body, link, image, image_title, hashtags, posted, timestamp ) VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+                        ) or die "Can't prepare statement: $DBI::errstr";
+                        $sth->execute(
+                                $item->{'guid'},
+                                $params{'feed_id'},
+                                $item->{'title'},
+                                $item->{'body'},
+                                $item->{'link'},
+                                $item->{'image'},
+                                $item->{'image_title'},
+                                join( ' ', @{$item->{'hashtags'}} ),
+                                0,
+                                time,
+                        ) or die "Can't execute statement: $DBI::errstr";
+                }
         }
-    }
 
         $dbh->disconnect();
 }
@@ -232,7 +240,7 @@ sub get_feed_items {
         $params{'auto_tags'} = [] unless defined $params{'auto_tags'};
         $params{'extract_tags_from_url'} = 0 unless defined $params{'extract_tags_from_url'};
         $params{'tag_categories'} = 0 unless defined $params{'tag_categories'};
-	    $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
+        $params{'ignored_tags'} = [] unless defined $params{'ignored_tags'};
 
         foreach my $item ( @$list ){
                 my $link = $item->{'link'};
@@ -242,8 +250,8 @@ sub get_feed_items {
 
                 my @hashtags = ();
                 my $guid = undef;
-		        my $image = '';
-		        my $image_title = '';
+                my $image = '';
+                my $image_title = '';
 
                 # strip trailing /
                 $link =~ s/\/+$// if defined $link;
@@ -298,79 +306,83 @@ sub get_feed_items {
                         push ( @hashtags, @categories );
                 }
 
-		# extract image link and hover text from content:encoded if it exists
-		if( defined $item->{'content:encoded'} ){
-			$item->{'content:encoded'} =~ /img .* ?src=\\?'(https?:\/\/[^']+)/ unless $item->{'content:encoded'} =~ /img .* ?src=\\?"(https?:\/\/[^"]+)/;
+                # extract image link and hover text from content:encoded if it exists
+                if( defined $item->{'content:encoded'} ){
+                        $item->{'content:encoded'} =~ /img .* ?src=\\?'(https?:\/\/[^']+)/ unless $item->{'content:encoded'} =~ /img .* ?src=\\?"(https?:\/\/[^"]+)/;
 
-			if( defined $1 ){
-				$image = $1;
-				$item->{'content:encoded'} =~ / title='([^']+)/ unless $item->{'content:encoded'} =~ / title="([^"]+)/;
-				$image_title = $1 if defined $1;
-			}
-		}
-
-		# extract image link and hover text from description if it exists
-		if( not length $image and defined $item->{'description'} ){
-			$item->{'description'} =~ /img .* ?src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ /img .* ?src="(https?:\/\/[^"]+)/;
-
-			if( defined $1 ){
-				$image = $1;
-				$item->{'description'} =~ / title='([^']+)/ unless $item->{'description'} =~ / title="([^"]+)/;
-				$image_title = $1 if defined $1;
-			}
-		}
-
-		# extract the image link from the enclosure tag if it exists
-		if( not length $image and defined $item->{'enclosure'} and defined $item->{'enclosure'}->{'type'} and $item->{'enclosure'}->{'type'} =~ /^image\// ){
-			$image = $item->{'enclosure'}->{'url'} if defined $item->{'enclosure'}->{'url'};
-		}
-
-		# remove any query params from image link
-		$image =~ s/(\?.*)$//;
-
-        @hashtags = sort @hashtags;
-
-        if( defined $item->{'guid'} ){
-                if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
-                        $guid = $item->{'guid'}->{'content'};
+                        if( defined $1 ){
+                                $image = $1;
+                                $item->{'content:encoded'} =~ / title='([^']+)/ unless $item->{'content:encoded'} =~ / title="([^"]+)/;
+                                $image_title = $1 if defined $1;
+                        }
                 }
-                elsif( ref $item->{'guid'} ne 'HASH' ) {
-                        $guid = $item->{'guid'};
+
+                # extract image link and hover text from description if it exists
+                if( not length $image and defined $item->{'description'} ){
+                        $item->{'description'} =~ /img .* ?src='(https?:\/\/[^']+)/ unless $item->{'description'} =~ /img .* ?src="(https?:\/\/[^"]+)/;
+
+                        if( defined $1 ){
+                                $image = $1;
+                                $item->{'description'} =~ / title='([^']+)/ unless $item->{'description'} =~ / title="([^"]+)/;
+                                $image_title = $1 if defined $1;
+                        }
                 }
+
+                # extract the image link from the enclosure tag if it exists
+                if( not length $image and defined $item->{'enclosure'} and defined $item->{'enclosure'}->{'type'} and $item->{'enclosure'}->{'type'} =~ /^image\// ){
+                        $image = $item->{'enclosure'}->{'url'} if defined $item->{'enclosure'}->{'url'};
+                }
+
+                # remove any query params from image link
+                $image =~ s/(\?.*)$//;
+
+                @hashtags = sort @hashtags;
+
+                if( defined $item->{'guid'} ){
+                        if( ref $item->{'guid'} eq 'HASH' and defined $item->{'guid'}->{'content'} ){
+                                $guid = $item->{'guid'}->{'content'};
+                        }
+                        elsif( ref $item->{'guid'} ne 'HASH' ) {
+                                $guid = $item->{'guid'};
+                        }
+                }
+                elsif( defined $item->{'id'} ){
+                        $guid = $item->{'id'};
+                }
+                else { $guid = $link }
+
+                @hashtags = @{ hashtagify( \@hashtags ) };
+
+                # filter out ignored tags
+                for( my $t = 0; $t < @hashtags; $t++ ){
+                        foreach my $ignored ( @{$params{'ignored_tags'}} ){
+                                splice( @hashtags, $t, 1 ) if $hashtags[$t] eq $ignored;
+                        }
+                }
+
+                my $body = HTML::FormatMarkdown->format_from_string($item->{'description'}, rm => 100000);
+                $body    = HTML::FormatMarkdown->format_from_string($item->{'content:encoded'}, rm => 100000) if ($item->{'content:encoded'});
+
+                my $obj = {
+                        guid        => $guid,
+                        title       => $item->{'title'},
+                        body        => $body,
+                        link        => $link,
+                        image       => $image,
+                        image_title => $image_title,
+                        hashtags    => \@hashtags,
+                };
+
+                $items[@items] = $obj;
         }
-        elsif( defined $item->{'id'} ){
-                $guid = $item->{'id'};
+
+        # the last shall be first and the first shall be last
+        my @reversed = ();
+        for( my $i = $#items; $i >= 0; $i-- ){
+                $reversed[@reversed] = $items[$i];
         }
-        else { $guid = $link }
 
-		@hashtags = @{ hashtagify( \@hashtags ) };
-
-		# filter out ignored tags
-		for( my $t = 0; $t < @hashtags; $t++ ){
-			foreach my $ignored ( @{$params{'ignored_tags'}} ){
-				splice( @hashtags, $t, 1 ) if $hashtags[$t] eq $ignored;
-			}
-		}
-
-        my $obj = {
-                guid            => $guid,
-                title           => $item->{'title'},
-                link            => $link,
-			    image		=> $image,
-			    image_title	=> $image_title,
-                hashtags        => \@hashtags,
-        };
-
-        $items[@items] = $obj;
-    }
-
-	# the last shall be first and the first shall be last
-	my @reversed = ();
-	for( my $i = $#items; $i >= 0; $i-- ){
-		$reversed[@reversed] = $items[$i];
-	}
-
-    return \@reversed;
+        return \@reversed;
 }
 
 # extract the data we need based on feed type (RSS v. Atom)
@@ -380,25 +392,25 @@ sub decode_feed{
 
         # RSS
         if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} ){
-            if( ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
-                @list = @{$feed->{'channel'}->{'item'}};
-            }
-            elsif( ref $feed->{'channel'}->{'item'} eq 'HASH' ){
-                if( length( keys %{$feed->{'channel'}->{'item'}} ) == 1 ){
-                    $list[@list] = $feed->{'channel'}->{'item'}
+                if( ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
+                        @list = @{$feed->{'channel'}->{'item'}};
                 }
-                else{
-                    @list = values %{$feed->{'channel'}->{'item'}};
+                elsif( ref $feed->{'channel'}->{'item'} eq 'HASH' ){
+                        if( length( keys %{$feed->{'channel'}->{'item'}} ) == 1 ){
+                                $list[@list] = $feed->{'channel'}->{'item'}
+                        }
+                        else{
+                                @list = values %{$feed->{'channel'}->{'item'}};
+                        }
                 }
-            }
         }
         elsif( defined $feed->{'item'} ){
-            if( ref $feed->{'item'} eq 'ARRAY' ){
-                @list = @{$feed->{'item'}};
-            }
-            elsif( ref $feed->{'item'} eq 'HASH' ){
-                @list = values %{$feed->{'item'}};
-            }
+                if( ref $feed->{'item'} eq 'ARRAY' ){
+                        @list = @{$feed->{'item'}};
+                }
+                elsif( ref $feed->{'item'} eq 'HASH' ){
+                        @list = values %{$feed->{'item'}};
+                }
         }
         # Atom
         elsif( defined $feed->{'entry'} and ref $feed->{'entry'} eq 'HASH' ){
@@ -500,7 +512,7 @@ sub publish_post {
         $ua->cookie_jar( {} );
 
         # allow option for insecure certs
-        if     ($params{'insecure'}){
+        if( $params{'insecure'} ){
                 $ua->ssl_opts( verify_hostname  => 0);
         }
 
@@ -617,13 +629,25 @@ sub post_message {
 sub init_database {
         my ( $db_file ) = @_;
 
+        my $dbh = connect_to_db( $db_file );
         unless( -e $db_file ){
-                my $dbh = connect_to_db( $db_file );
                 my $sth = $dbh->prepare(
-                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),image_title VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1))'
+                        'CREATE TABLE feeds(guid VARCHAR(255) PRIMARY KEY,feed_id VARCHAR(127),title VARCHAR(255),link VARCHAR(255),image VARCHAR(255),image_title VARCHAR(255),hashtags VARCHAR(255),timestamp INTEGER(10),posted INTEGER(1),body VARCHAR(10000))'
                 ) or die "Can't prepare statement: $DBI::errstr";
 
                 $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                $dbh->disconnect();
+        }
+        else {
+                my $sth = $dbh->column_info(undef, undef, 'feeds', undef);
+                my $body_exists = 0;
+                while( my( $tcat, $tscheme, $tname, $column_name ) = $sth->fetchrow_array() ) {
+                        $body_exists = 1 if $column_name eq 'body';
+                }
+                unless( $body_exists ) {
+                        $sth = $dbh->prepare('ALTER TABLE feeds ADD body VARCHAR(10000)');
+                        $sth->execute() or die "Can't execute statement: $DBI::errstr";
+                }
                 $dbh->disconnect();
         }
 }
@@ -635,7 +659,7 @@ sub usage {
         print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e    --title-tags                   Automatically hashtagify RSS item title\n";
+        print "    -e   --title-tags                   Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
@@ -652,6 +676,7 @@ sub usage {
         print "    -v   --via <string>                  Sets the 'posted via' text (default: 'pod_feeder')\n";
         print "    -w   --post-raw-link                 Post the raw link instead of hyperlinking the article title (default: off)\n";
         print "    -x   --limit <n>                     Only post n items per script run, to prevent post-spamming (default: no limit)\n";
+        print "         --body                          Post the body of the feed (description or content:encoded item)\n";
         print "\n";
 
         exit;
