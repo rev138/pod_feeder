@@ -360,7 +360,8 @@ sub get_feed_items {
                         }
                 }
 
-                my $body = HTML::FormatMarkdown->format_from_string($item->{'description'}, rm => 100000);
+		my $body = '';
+                $body    = HTML::FormatMarkdown->format_from_string($item->{'description'}, rm => 100000) if ($item->{'description'});
                 $body    = HTML::FormatMarkdown->format_from_string($item->{'content:encoded'}, rm => 100000) if ($item->{'content:encoded'});
 
                 my $obj = {
