@@ -268,7 +268,7 @@ sub get_feed_items {
                         $link_part =~ s/(\?.*)$//;
 
                         # split up string
-                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $link_part );
+                        my @parts = split( /([^[[:alnum:]]]|[[:blank:]]|[[:punct:]])/, $link_part );
 
                         push( @hashtags, @parts );
                 }
@@ -281,7 +281,7 @@ sub get_feed_items {
                         $title =~ s/('|`)//g;
 
                         # split up string on non-alphanumerics
-                        my @parts = split( /([^(\p{Letter}|\p{Number})]|\p{Punctuation})/, $title );
+                        my @parts = split( /([^[[:alnum:]]]|[[:blank:]]|[[:punct:]])/, $title );
                         my @tags = ();
 
                         foreach my $part ( @parts ){
@@ -496,6 +496,7 @@ sub hashtagify {
                 next if lc( $item ) =~ m/^(a(lso|nd|ny|re)|been|but|can(not|t)?|e(ach|tc|very)|for|from|g(e|o)t|ha(d|ve)|has(nt)?|hers?|hi(m|s)|how|its|no(r|t)|ours?|she|some|th(an|at|em?|eirs?|(e|o)se|ey|eyre|is)|too|very|was|wh(at|en|o)|with|you(r|rs)?)$/;
                 # hashtagify it
                 $item = '#' . $item unless $item =~ m/^#/;
+
                 # use a hash here instead of an ordered list for auto-dedupe
                 $hashtags{ lc( $item ) } = undef;
         }
@@ -621,7 +622,7 @@ sub post_message {
                 my $message = { status_message => { text => format_content( $content, %params ),  provider_display_name => $params{'via'} }, aspect_ids => $aspect_ids };
                 my $json = JSON->new->allow_nonref;
 
-                $json = $json->utf8(0) unless utf8::is_utf8( $message );
+                # $json = $json->utf8(1) unless utf8::is_utf8( $message );
 
                 my $json_message = $json->encode( $message );
 
