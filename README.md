@@ -13,9 +13,11 @@ This is a lightweight, customizable "bot" script to harvest RSS/Atom feeds and r
 - JSON
 - XML::Simple
 - DBD::SQLite
-- Unicode::Normalize
-- Getopt::Long
 - HTML::FormatMarkdown
+
+For instance, on a debian system you can install them like so:
+
+`sudo apt-get install libwww-perl libany-uri-escape-perl libhtml-parser-perl libjson-perl libxml-simple-perl libdbd-sqlite3-perl libhtml-format-perl`
 
 This script is intended to be run as a cron job, which might look something like this:
 
