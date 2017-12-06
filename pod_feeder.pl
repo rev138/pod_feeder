@@ -467,7 +467,13 @@ sub fetch_feed {
         my $response = $ua->get( $feed_url );
 
         if( $response->is_success ){
+            my $dc = $response->decoded_content;
+            if( Encode::is_utf8($dc) ){
                 return ( 1, XMLin normalize( 'D', $response->decoded_content ) );
+            }
+            else {
+                return ( 1, XMLin $dc );
+            }
         }
         else {
                 return ( 0, $response );
