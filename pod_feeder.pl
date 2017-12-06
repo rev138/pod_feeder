@@ -156,7 +156,6 @@ sub publish_feed_items {
                 $content .= "\n" . $update->{'body'} if $params{'body'};
 
                 print "Publishing $params{'feed_id'}\t$update->{'guid'}\n";
-
                 my $post = publish_post( $content, %params );
 
                 # mark the item as successfully posted
@@ -226,7 +225,7 @@ sub update_feed {
 
 sub connect_to_db {
         my ( $db_file ) = @_;
-        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '', { RaiseError => 1, sqlite_unicode => 1 } ) or die $DBI::errstr;
+        my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file", '', '', { RaiseError => 1, sqlite_unicode => 0 } ) or die $DBI::errstr;
 
         return $dbh;
 }
@@ -483,14 +482,14 @@ sub hashtagify {
 
         foreach my $item ( @list ){
                 # remove non-alphanumerics
-                $item =~ s/[^(\p{Letter}|\p{Number})]//g;
+                $item =~ s/[^[[:alnum:]]]//g;
 
                 # drop stop words
                 # TODO : make these overridable
                 next if length( $item ) < 3;
                 next if lc( $item ) =~ m/^(a(lso|nd|ny|re)|been|but|can(not|t)?|e(ach|tc|very)|for|from|g(e|o)t|ha(d|ve)|has(nt)?|hers?|hi(m|s)|how|its|no(r|t)|ours?|she|some|th(an|at|em?|eirs?|(e|o)se|ey|eyre|is)|too|very|was|wh(at|en|o)|with|you(r|rs)?)$/;
                 # hashtagify it
-                $item = '#' . $item;
+                $item = '#' . $item unless $item =~ m/^#/;
                 # use a hash here instead of an ordered list for auto-dedupe
                 $hashtags{ lc( $item ) } = undef;
         }
@@ -522,8 +521,8 @@ sub publish_post {
 
         # if we've logged in successfully, post the message
         if( $login_response->is_success ){
-                # encode utf-8 characters
-                utf8::encode($content);
+                # # encode utf-8 characters
+                # utf8::encode($content);
 
                 my $post = post_message( $ua, $params{'pod_url'}, $content, $params{'aspect_ids'}, %params );
                 #logout( $ua, $pod_url );
