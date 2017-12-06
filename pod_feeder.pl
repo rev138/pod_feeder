@@ -667,7 +667,7 @@ sub usage {
         print "    -b   --embed-image                   Embed an image in the post if a link exists (default: off)\n";
         print "    -c   --category-tags                 Attempt to automatically hashtagify RSS item 'categories' (default: off)\n";
         print "    -d   --database <sqlite file>        The SQLite file to store feed data (default: 'feed.db')\n";
-        print "    -e   --title-tags                   Automatically hashtagify RSS item title\n";
+        print "    -e   --title-tags                    Automatically hashtagify RSS item title\n";
         print "    -f   --feed-url <http://...>         The feed URL\n";
         print "    -g   --user-agent <string>           Use this to spoof the user-agent if the feed blocks bots (ex: 'Mozilla/5.0')\n";
         print "    -i   --feed-id <string>              An arbitrary identifier to associate database entries with this feed\n";
