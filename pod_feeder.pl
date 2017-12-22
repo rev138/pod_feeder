@@ -362,6 +362,7 @@ sub get_feed_items {
 		my $body = '';
                 $body    = HTML::FormatMarkdown->format_from_string($item->{'description'}, rm => 100000) if ($item->{'description'});
                 $body    = HTML::FormatMarkdown->format_from_string($item->{'content:encoded'}, rm => 100000) if ($item->{'content:encoded'});
+                $body    = HTML::FormatMarkdown->format_from_string($item->{'content'}, rm => 100000) if ($item->{'content'});
 
                 my $obj = {
                         guid        => $guid,
@@ -389,7 +390,6 @@ sub get_feed_items {
 sub decode_feed{
         my ( $feed ) = @_;
         my @list = ();
-
         # RSS
         if( defined $feed->{'channel'} and defined $feed->{'channel'}->{'item'} ){
                 if( ref $feed->{'channel'}->{'item'} eq 'ARRAY' ){
@@ -447,6 +447,12 @@ sub decode_feed{
                                 }
                                 else {
                                         $item->{'description'} = $entries->{$guid}->{'summary'};
+                                }
+                        }
+
+                        if( defined $entries->{$guid}->{'content'} ){
+                                if( ref($entries->{$guid}->{'content'}) eq 'HASH' and defined $entries->{$guid}->{'content'}->{'content'} ){
+                                        $item->{'content'} = $entries->{$guid}->{'content'}->{'content'};
                                 }
                         }
 
