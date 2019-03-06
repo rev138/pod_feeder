@@ -1,3 +1,8 @@
+# NOTICE: THIS PROJECT IS NO LONGER MAINTAINED
+Please migrate to
+[pod_feeder_v2](https://gitlab.com/brianodonnell/pod_feeder_v2) and let this
+version die with dignity 🙂
+
 # pod_feeder
 Publishes RSS/Atom feeds to Diaspora*
 
